@@ -443,65 +443,86 @@ function populateVoiceList() {
 
     // Target voices in preferred order with metadata
     const targetVoices = [
-        { name: 'Google UK English Female', label: 'UK Female', icon: 'woman-outline', color: '#ff7675' },
-        { name: 'Google UK English Male', label: 'UK Male', icon: 'man-outline', color: '#74b9ff' },
-        { name: 'Google US English', label: 'US English', icon: 'earth-outline', color: '#55efc4' },
-        { name: 'Microsoft David', label: 'David (US)', icon: 'person-outline', color: '#a29bfe' },
-        { name: 'Microsoft Mark', label: 'Mark (US)', icon: 'person-outline', color: '#6c5ce7' },
-        { name: 'Microsoft Zira', label: 'Zira (US)', icon: 'woman-outline', color: '#fd79a8' }
+        { name: 'Google UK English Female', label: 'UK Female', icon: 'woman-outline', color: '#ff7675', type: 'UK' },
+        { name: 'Google UK English Male', label: 'UK Male', icon: 'man-outline', color: '#74b9ff', type: 'UK' },
+        { name: 'Google US English', label: 'US English', icon: 'earth-outline', color: '#55efc4', type: 'US' },
+        { name: 'Microsoft David', label: 'David (US)', icon: 'person-outline', color: '#a29bfe', type: 'US' },
+        { name: 'Microsoft Mark', label: 'Mark (US)', icon: 'person-outline', color: '#6c5ce7', type: 'US' },
+        { name: 'Microsoft Zira', label: 'Zira (US)', icon: 'woman-outline', color: '#fd79a8', type: 'US' }
     ];
 
     voiceContainer.innerHTML = '';
 
-    let foundAny = false;
+    // Track added voices to avoid duplicates or missing regions
+    const addedURIs = new Set();
+    let hasUS = false;
+    let hasUK = false;
 
+    // Helper to create button
+    const createBtn = (voice, label, icon, color) => {
+        const btn = document.createElement('button');
+        btn.className = 'voice-btn';
+        if (voice.voiceURI === currentVoiceURI) {
+            btn.classList.add('active');
+        }
+
+        btn.innerHTML = `
+            <div class="voice-icon" style="color: ${color}">
+                <ion-icon name="${icon}"></ion-icon>
+            </div>
+            <span class="voice-label">${label}</span>
+        `;
+
+        btn.onclick = () => {
+            currentVoiceURI = voice.voiceURI;
+            localStorage.setItem('voiceURI', currentVoiceURI);
+
+            // Update UI
+            const allBtns = voiceContainer.querySelectorAll('.voice-btn');
+            allBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Speak test
+            speakWord('Hello, this is a test.');
+        };
+
+        voiceContainer.appendChild(btn);
+        addedURIs.add(voice.voiceURI);
+    };
+
+    // 1. Try to find specific target voices
     targetVoices.forEach(target => {
-        // Find a matching voice in the system list (fuzzy match)
         const voice = voices.find(v => v.name.includes(target.name));
-
         if (voice) {
-            foundAny = true;
-            const btn = document.createElement('button');
-            btn.className = 'voice-btn';
-            if (voice.voiceURI === currentVoiceURI) {
-                btn.classList.add('active');
-            }
-
-            btn.innerHTML = `
-                <div class="voice-icon" style="color: ${target.color}">
-                    <ion-icon name="${target.icon}"></ion-icon>
-                </div>
-                <span class="voice-label">${target.label}</span>
-            `;
-
-            btn.onclick = () => {
-                currentVoiceURI = voice.voiceURI;
-                localStorage.setItem('voiceURI', currentVoiceURI);
-
-                // Update UI
-                const allBtns = voiceContainer.querySelectorAll('.voice-btn');
-                allBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                // Speak test
-                speakWord('Hello, this is a test.');
-            };
-
-            voiceContainer.appendChild(btn);
+            createBtn(voice, target.label, target.icon, target.color);
+            if (target.type === 'US') hasUS = true;
+            if (target.type === 'UK') hasUK = true;
         }
     });
 
-    // Fallback if no target voices found (e.g. mobile or different OS)
-    if (!foundAny) {
-        // Show at least one default English voice or just a generic "Default"
-        const defaultBtn = document.createElement('button');
-        defaultBtn.className = 'voice-btn active';
-        defaultBtn.textContent = 'System Default';
-        defaultBtn.onclick = () => {
-            currentVoiceURI = null; // Reset to let system decide or use first available
-            localStorage.removeItem('voiceURI');
-        };
-        voiceContainer.appendChild(defaultBtn);
+    // 2. Mobile/Fallback: Check for generic system voices if targets missing
+    if (!hasUS) {
+        // Find any en-US
+        const usVoice = voices.find(v => v.lang === 'en-US' && !addedURIs.has(v.voiceURI));
+        if (usVoice) {
+            createBtn(usVoice, 'US System', 'earth-outline', '#55efc4');
+            hasUS = true;
+        }
+    }
+
+    if (!hasUK) {
+        // Find any en-GB
+        const ukVoice = voices.find(v => v.lang === 'en-GB' && !addedURIs.has(v.voiceURI));
+        if (ukVoice) {
+            createBtn(ukVoice, 'UK System', 'earth-outline', '#74b9ff');
+            hasUK = true;
+        }
+    }
+
+    // 3. Last Resort: Default if nothing added
+    if (addedURIs.size === 0 && voices.length > 0) {
+        // Usually the first one is default
+        createBtn(voices[0], 'Default', 'volume-high-outline', '#b2bec3');
     }
 }
 
