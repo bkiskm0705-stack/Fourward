@@ -4,6 +4,8 @@ const views = {
     list: document.getElementById('list-view'),
     flashCard: document.getElementById('flash-card-view'),
     quiz: document.getElementById('quiz-view'),
+    listening: document.getElementById('listening-view'),
+    writing: document.getElementById('writing-view'),
     settings: document.getElementById('settings-view')
 };
 
@@ -121,6 +123,208 @@ function setupEventListeners() {
 
     closeSettingsBtn.addEventListener('click', closeSettings);
 
+    // --- Listening Mode Logic ---
+    const listeningInputContainer = document.getElementById('listening-input-container');
+    const listeningPlayerContainer = document.getElementById('listening-player-container');
+    const listeningTextInput = document.getElementById('listening-text-input');
+    const listeningStartBtn = document.getElementById('listening-start-btn');
+    const listeningBackBtn = document.getElementById('listening-back-btn');
+    const listeningTextDisplay = document.getElementById('listening-text-display');
+    const listeningVoiceLabel = document.getElementById('listening-voice-label');
+
+    // Player Controls
+    const listeningRwBtn = document.getElementById('listening-rw-btn'); // -5s
+    const listeningPlayBtn = document.getElementById('listening-play-btn');
+    const listeningFfBtn = document.getElementById('listening-ff-btn'); // +5s
+
+    let listeningText = '';
+    let listeningUtterance = null;
+    let listeningIsPaused = false;
+    let listeningCharIndices = []; // Maps DOM index to char index
+    let listeningCurrentCharIndex = 0;
+
+    // Setup Listening Mode
+    function initListeningMode() {
+        // Update voice label
+        const voice = voices.find(v => v.voiceURI === currentVoiceURI);
+        if (voice) {
+            listeningVoiceLabel.textContent = voice.name;
+        }
+
+        // Prepare UI
+        listeningInputContainer.classList.remove('hidden');
+        listeningPlayerContainer.classList.add('hidden');
+        listeningTextInput.value = '';
+    }
+
+    // Start Button
+    listeningStartBtn.addEventListener('click', () => {
+        const text = listeningTextInput.value.trim();
+        if (!text) return; // Simple validation
+        startListeningSession(text);
+    });
+
+    // Back to Input
+    listeningBackBtn.addEventListener('click', () => {
+        stopListening();
+        listeningPlayerContainer.classList.add('hidden');
+        listeningInputContainer.classList.remove('hidden');
+    });
+
+    // Start Session
+    function startListeningSession(text) {
+        listeningText = text;
+        listeningInputContainer.classList.add('hidden');
+        listeningPlayerContainer.classList.remove('hidden');
+
+        renderListeningText(text);
+        listeningCurrentCharIndex = 0;
+        playListeningAudio(0);
+    }
+
+    // Render Text with Spans
+    function renderListeningText(text) {
+        listeningTextDisplay.innerHTML = '';
+        listeningCharIndices = [];
+
+        // Split by spaces but preserve them in logic if needed, simplify for now:
+        // We will wrap words in <span>. 
+        // A simple regex approach to find words and their indices:
+        const regex = /\S+/g;
+        let match;
+        let lastIndex = 0;
+
+        // Helper to append non-word text
+        const appendText = (str) => {
+            if (str) {
+                listeningTextDisplay.appendChild(document.createTextNode(str));
+            }
+        };
+
+        while ((match = regex.exec(text)) !== null) {
+            // Append preceding whitespace/punctuation
+            appendText(text.substring(lastIndex, match.index));
+
+            // Create span for word
+            const span = document.createElement('span');
+            span.textContent = match[0];
+            span.dataset.start = match.index;
+            span.dataset.end = match.index + match[0].length;
+
+            // Click to seek
+            span.onclick = () => {
+                playListeningAudio(match.index);
+            };
+
+            listeningTextDisplay.appendChild(span);
+            listeningCharIndices.push({
+                start: match.index,
+                end: match.index + match[0].length,
+                element: span
+            });
+
+            lastIndex = match.index + match[0].length;
+        }
+        // Append remaining text
+        appendText(text.substring(lastIndex));
+    }
+
+    // Play Audio
+    function playListeningAudio(startIndex) {
+        window.speechSynthesis.cancel();
+        listeningIsPaused = false;
+        updatePlayIcon(true);
+
+        // Create new utterance from the start index (for simple seeking calculation)
+        // Note: SpeechSynthesis is tricky with exact seeking. 
+        // Strategies: 
+        // 1. Speak whole text, ignore boundary events until startIndex (No, wait, it starts speaking immediately)
+        // 2. Speak substring from startIndex. This is reliable.
+
+        const textToSpeak = listeningText.substring(startIndex);
+        listeningUtterance = new SpeechSynthesisUtterance(textToSpeak);
+
+        // Apply voice settings
+        const voice = voices.find(v => v.voiceURI === currentVoiceURI);
+        if (voice) listeningUtterance.voice = voice;
+        listeningUtterance.rate = 1.0;
+
+        // Boundary Event (Progress Tracking)
+        listeningUtterance.onboundary = (event) => {
+            // event.charIndex is absolute to the textToSpeak (substring)
+            // We need to map it back to the original full text
+            const globalCharIndex = startIndex + event.charIndex;
+            listeningCurrentCharIndex = globalCharIndex;
+            highlightWord(globalCharIndex);
+        };
+
+        listeningUtterance.onend = () => {
+            updatePlayIcon(false);
+            clearHighlights();
+        };
+
+        window.speechSynthesis.speak(listeningUtterance);
+    }
+
+    // Controls
+    listeningPlayBtn.onclick = () => {
+        if (window.speechSynthesis.speaking) {
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                listeningIsPaused = false;
+                updatePlayIcon(true);
+            } else {
+                window.speechSynthesis.pause();
+                listeningIsPaused = true;
+                updatePlayIcon(false);
+            }
+        } else {
+            // Restart if finished
+            playListeningAudio(listeningCurrentCharIndex || 0);
+        }
+    };
+
+    // Skip -5s / +5s (Approx 15 chars per sec -> 75 chars)
+    const SKIP_CHARS = 75;
+
+    listeningRwBtn.onclick = () => {
+        let newIndex = Math.max(0, listeningCurrentCharIndex - SKIP_CHARS);
+        playListeningAudio(newIndex);
+    };
+
+    listeningFfBtn.onclick = () => {
+        let newIndex = Math.min(listeningText.length - 1, listeningCurrentCharIndex + SKIP_CHARS);
+        playListeningAudio(newIndex);
+    };
+
+    function stopListening() {
+        window.speechSynthesis.cancel();
+    }
+
+    // UI Helpers
+    function updatePlayIcon(isPlaying) {
+        listeningPlayBtn.innerHTML = isPlaying ?
+            '<ion-icon name="pause"></ion-icon>' :
+            '<ion-icon name="play"></ion-icon>';
+    }
+
+    function highlightWord(charIndex) {
+        // Find the span that contains this charIndex
+        const match = listeningCharIndices.find(item =>
+            charIndex >= item.start && charIndex < item.end
+        );
+
+        if (match) {
+            clearHighlights();
+            match.element.classList.add('active');
+            match.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function clearHighlights() {
+        const active = listeningTextDisplay.querySelector('.active');
+        if (active) active.classList.remove('active');
+    }
 
     // Theme Switching
     themeBtns.forEach(btn => {
@@ -233,8 +437,31 @@ async function fetchWords() {
 
 // View Management
 function switchView(viewId) {
-    Object.values(views).forEach(el => el.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
+    // Dynamically select all views to ensure we catch everything
+    const allViews = document.querySelectorAll('.view');
+    allViews.forEach(el => el.classList.remove('active'));
+
+    const target = document.getElementById(viewId);
+    if (target) {
+        target.classList.add('active');
+    } else {
+        console.error(`View not found: ${viewId}`);
+    }
+
+
+
+    // Update Nav Icons
+    navItems.forEach(n => {
+        if (n.dataset.target === viewId) {
+            n.classList.add('active');
+        } else {
+            n.classList.remove('active');
+        }
+    });
+
+    if (viewId === 'listening-view') {
+        initListeningMode();
+    }
 }
 
 // Word List Logic
@@ -282,7 +509,7 @@ function renderWordList() {
 
         const backBtn = document.createElement('button');
         backBtn.className = 'back-btn';
-        backBtn.innerHTML = '<ion-icon name="arrow-back-outline"></ion-icon> Back to Lists';
+        backBtn.innerHTML = '<ion-icon name="arrow-back-outline"></ion-icon> Back to Vocab';
         backBtn.onclick = () => {
             currentGroupIndex = null;
             renderWordList();
@@ -323,7 +550,7 @@ function renderGroups(words) {
         const btn = document.createElement('div');
         btn.className = 'group-btn';
         btn.innerHTML = `
-            <span>List ${i + 1}</span>
+            <span>Vocab ${i + 1}</span>
             <small>${start} - ${end}</small>
         `;
 
@@ -463,73 +690,92 @@ let voices = [];
 
 function populateVoiceList() {
     voices = window.speechSynthesis.getVoices();
-    const voiceContainer = document.getElementById('voice-selector');
 
-    // Target voices in preferred order with metadata
+    // We strictly use the filtered list for simplicity in this app
     const targetVoices = [
-        { name: 'Samantha', label: 'Samantha (US)', icon: 'woman-outline', color: '#ff7675', type: 'US' },
-        { name: 'Bells', label: 'ベル (US)', icon: 'notifications-outline', color: '#fab1a0', type: 'Novelty' },
-        { name: 'Bubbles', label: 'Bubble (US)', icon: 'water-outline', color: '#74b9ff', type: 'Novelty' },
-        { name: 'Jester', label: '道化 (US)', icon: 'happy-outline', color: '#fdcb6e', type: 'Novelty' }
+        // iOS / Mac
+        { searchNames: ['Samantha'], label: 'Samantha (US)', icon: 'woman-outline', color: '#ff7675', type: 'US' },
+        { searchNames: ['Ava'], label: 'Ava (Premium)', icon: 'sparkles-outline', color: '#a29bfe', type: 'US' },
+        { searchNames: ['Evan'], label: 'Evan (Enhanced)', icon: 'flash-outline', color: '#6c5ce7', type: 'US' },
+        { searchNames: ['Bells', 'Bell', 'ベル'], label: 'Bells (US)', icon: 'notifications-outline', color: '#fab1a0', type: 'Novelty' },
+        { searchNames: ['Bubbles', 'Bubble', 'バブル'], label: 'Bubbles (US)', icon: 'water-outline', color: '#74b9ff', type: 'Novelty' },
+        { searchNames: ['Jester', '道化', '道化師'], label: 'Jester (US)', icon: 'happy-outline', color: '#fdcb6e', type: 'Novelty' },
+
+        // Windows / Chrome (PC)
+        { searchNames: ['Google US English', 'Google US'], label: 'Google US', icon: 'logo-google', color: '#55efc4', type: 'PC' },
+        { searchNames: ['Microsoft David', 'David'], label: 'David (US)', icon: 'man-outline', color: '#a29bfe', type: 'PC' },
+        { searchNames: ['Microsoft Zira', 'Zira'], label: 'Zira (US)', icon: 'woman-outline', color: '#fd79a8', type: 'PC' },
+        { searchNames: ['Microsoft Mark', 'Mark'], label: 'Mark (US)', icon: 'man-outline', color: '#6c5ce7', type: 'PC' }
     ];
 
-    voiceContainer.innerHTML = '';
+    // Helper to render to a container
+    const renderToContainer = (containerId) => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
 
-    // Track added voices to avoid duplicates
-    const addedURIs = new Set();
+        container.innerHTML = '';
+        const addedURIs = new Set(); // Per container tracking
 
-    // Helper to create button
-    const createBtn = (voice, label, icon, color) => {
-        const btn = document.createElement('button');
-        btn.className = 'voice-btn';
-        if (voice.voiceURI === currentVoiceURI) {
-            btn.classList.add('active');
-        }
+        const createBtn = (voice, label, icon, color) => {
+            const btn = document.createElement('button');
+            btn.className = 'voice-btn';
+            if (voice.voiceURI === currentVoiceURI) {
+                btn.classList.add('active');
+            }
 
-        btn.innerHTML = `
-            <div class="voice-icon" style="color: ${color}">
-                <ion-icon name="${icon}"></ion-icon>
-            </div>
-            <span class="voice-label">${label}</span>
-        `;
+            btn.innerHTML = `
+                <div class="voice-icon" style="color: ${color}">
+                    <ion-icon name="${icon}"></ion-icon>
+                </div>
+                <span class="voice-label">${label}</span>
+            `;
 
-        btn.onclick = () => {
-            currentVoiceURI = voice.voiceURI;
-            localStorage.setItem('voiceURI', currentVoiceURI);
+            btn.onclick = () => {
+                currentVoiceURI = voice.voiceURI;
+                localStorage.setItem('voiceURI', currentVoiceURI);
 
-            // Update UI
-            const allBtns = voiceContainer.querySelectorAll('.voice-btn');
-            allBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+                // Update ALL containers UI to reflect change
+                document.querySelectorAll('.voice-selector .voice-btn').forEach(b => b.classList.remove('active'));
 
-            // Speak test
-            speakWord('Hello, this is a test.');
+                // Since buttons are recreated/independent, we need to find all buttons corresponding to this URI and activate them
+                // But simplified: just re-render is easiest, or just brute force matching style
+                updateActiveVoiceUI(currentVoiceURI);
+
+                // Small feedback beep/speak
+                speakWord('Voice selected.');
+            };
+
+            container.appendChild(btn);
+            addedURIs.add(voice.voiceURI);
         };
 
-        voiceContainer.appendChild(btn);
-        addedURIs.add(voice.voiceURI);
+        targetVoices.forEach(target => {
+            const voice = voices.find(v => target.searchNames.some(name => v.name.includes(name)));
+            if (voice) {
+                createBtn(voice, target.label, target.icon, target.color);
+            }
+        });
+
+        // Fallback
+        if (addedURIs.size === 0) {
+            const defaultVoice = voices.find(v => v.name.includes('Google US English')) ||
+                voices.find(v => v.lang.startsWith('en')) ||
+                voices[0];
+            if (defaultVoice) {
+                createBtn(defaultVoice, 'Default English', 'volume-high-outline', '#b2bec3');
+            }
+        }
     };
 
-    // 1. Try to find specific target voices (Exact or partial match)
-    targetVoices.forEach(target => {
-        // Match by name loosely
-        const voice = voices.find(v => v.name.includes(target.name));
-        if (voice) {
-            createBtn(voice, target.label, target.icon, target.color);
-        }
-    });
+    renderToContainer('voice-selector'); // Settings
+    renderToContainer('listening-voice-selector'); // Listening Mode
+}
 
-    // 2. Fallback: If NONE of the requested voices found (e.g. non-iOS), show default English
-    // This ensures the app isn't broken on PC/Android
-    if (addedURIs.size === 0) {
-        const defaultVoice = voices.find(v => v.name.includes('Google US English')) ||
-            voices.find(v => v.lang.startsWith('en')) ||
-            voices[0];
-
-        if (defaultVoice) {
-            createBtn(defaultVoice, 'Default English', 'volume-high-outline', '#b2bec3');
-        }
-    }
+function updateActiveVoiceUI(uri) {
+    // Helper to visually update active state across all selectors
+    // Re-running populate is heavy, better to just toggle classes if we can match
+    // For now, simpler to just re-populate to ensure consistency or manual class toggle
+    populateVoiceList();
 }
 
 function speakWord(text) {

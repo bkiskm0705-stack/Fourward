@@ -21,7 +21,7 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <h1>TOEFL Vocab <span class="version">ver.1.03</span></h1>
+            <h1>TOEFL Vocab <span class="version">ver.1.04</span></h1>
             <div class="header-actions">
                 <button id="settings-btn" aria-label="Settings">
                     <ion-icon name="settings-outline"></ion-icon>
@@ -56,6 +56,66 @@
                     <ion-icon name="construct-outline"></ion-icon>
                     <h2>準備中...</h2>
                     <p>クイズ機能は現在開発中です。</p>
+                </div>
+            </div>
+
+            <!-- Listening View -->
+            <div id="listening-view" class="view">
+                <!-- Input Step -->
+                <div id="listening-input-container">
+                    <div class="input-header">
+                        <h2>Listening Practice</h2>
+                        <p class="subtitle">Paste your text below to start</p>
+                    </div>
+                    <textarea id="listening-text-input" placeholder="Paste English text here..."></textarea>
+
+                    <div class="input-actions">
+                        <label class="section-label">Select Voice:</label>
+                        <div id="listening-voice-selector" class="voice-selector small-selector">
+                            <!-- Buttons injected by JS -->
+                        </div>
+                        <button id="listening-start-btn" class="primary-btn">Start Listening</button>
+                    </div>
+                </div>
+
+                <!-- Player Step (Initially Hidden) -->
+                <div id="listening-player-container" class="hidden">
+                    <div class="player-header">
+                        <button id="listening-back-btn" class="icon-btn">
+                            <ion-icon name="arrow-back-outline"></ion-icon>
+                        </button>
+                        <span>Now Playing</span>
+                        <div style="width: 40px;"></div> <!-- Spacer -->
+                    </div>
+
+                    <div id="listening-text-display" class="player-text-area">
+                        <!-- Words injected here -->
+                    </div>
+
+                    <div class="player-controls">
+                        <button id="listening-rw-btn" class="control-btn small">
+                            <ion-icon name="play-back-outline"></ion-icon>
+                            <span>-5s</span>
+                        </button>
+
+                        <button id="listening-play-btn" class="control-btn big">
+                            <ion-icon name="play"></ion-icon> <!-- toggles to pause -->
+                        </button>
+
+                        <button id="listening-ff-btn" class="control-btn small">
+                            <ion-icon name="play-forward-outline"></ion-icon>
+                            <span>+5s</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Writing View -->
+            <div id="writing-view" class="view">
+                <div class="placeholder-container">
+                    <ion-icon name="create-outline"></ion-icon>
+                    <h2>準備中...</h2>
+                    <p>ライティング機能は現在開発中です。</p>
                 </div>
             </div>
 
@@ -139,18 +199,26 @@
         <!-- Bottom Navigation for Mobile -->
         <nav class="bottom-nav">
             <button class="nav-item active" data-target="list-view">
-                <ion-icon name="list-outline"></ion-icon>
-                <span>List</span>
+                <ion-icon name="book-outline"></ion-icon>
+                <span>Vocab</span>
             </button>
             <button class="nav-item" data-target="quiz-view">
                 <ion-icon name="school-outline"></ion-icon>
                 <span>Quiz</span>
             </button>
+            <button class="nav-item" data-target="listening-view">
+                <ion-icon name="headset-outline"></ion-icon>
+                <span>Listening</span>
+            </button>
+            <button class="nav-item" data-target="writing-view">
+                <ion-icon name="create-outline"></ion-icon>
+                <span>Writing</span>
+            </button>
         </nav>
     </div>
 
     <script src="config.js"></script>
-    <script src="script.js?v=1.03"></script>
+    <script src="script.js?v=1.04"></script>
 </body>
 
 </html>
