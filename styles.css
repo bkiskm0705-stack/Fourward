@@ -89,7 +89,7 @@ body {
 
 /* Header */
 .app-header {
-    padding: 1rem 1.5rem;
+    padding: 0.6rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -137,7 +137,7 @@ body {
 .app-content {
     flex: 1;
     overflow-y: auto;
-    padding: 80px 1rem 100px 1rem;
+    padding: 60px 1rem 80px 1rem;
     /* Top for header, bottom for nav */
     scroll-behavior: smooth;
 }
@@ -230,6 +230,7 @@ body {
     margin-bottom: 1rem;
     box-shadow: var(--shadow-sm);
     transition: transform 0.2s;
+    cursor: pointer;
 }
 
 .word-item:active {
@@ -245,6 +246,14 @@ body {
     align-items: center;
     gap: 0.8rem;
     flex-wrap: wrap;
+}
+
+.word-index {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    min-width: 30px;
+    /* Align numbers nicely */
 }
 
 .word {
@@ -640,7 +649,7 @@ body {
     align-items: center;
     background: var(--nav-bg);
     backdrop-filter: blur(10px);
-    padding: 1rem 0 2rem 0;
+    padding: 0.5rem 0 1.5rem 0;
     /* Extra padding for safe area */
     position: absolute;
     bottom: 0;
@@ -833,12 +842,7 @@ body {
     width: 100%;
 }
 
-.fc-example-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.5rem;
-}
+/* .fc-example-row removed */
 
 .fc-en {
     font-size: 1rem;
@@ -849,22 +853,26 @@ body {
 }
 
 .fc-example-audio-btn {
-    background: none;
+    font-size: 2.5rem;
+    background: rgba(255, 255, 255, 0.1);
     border: none;
-    color: var(--primary-light);
+    color: var(--text-primary);
     cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0.2rem;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.8;
     transition: all 0.2s;
+    margin: 1.5rem auto 0.5rem auto;
+    /* Center with spacing */
+    flex-shrink: 0;
 }
 
 .fc-example-audio-btn:hover {
-    opacity: 1;
-    transform: scale(1.1);
+    background: var(--primary-color);
+    transform: scale(1.05);
 }
 
 .fc-example-audio-btn:active {

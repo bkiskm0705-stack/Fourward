@@ -103,14 +103,24 @@ function setupEventListeners() {
     });
 
     // Settings
-    settingsBtn.addEventListener('click', () => switchView('settings-view'));
-    closeSettingsBtn.addEventListener('click', () => {
+    // Settings
+    const closeSettings = () => {
         // Return to last active view or list
         switchView('list-view');
         // Reset nav
         navItems.forEach(n => n.classList.remove('active'));
         document.querySelector('[data-target="list-view"]').classList.add('active');
+    };
+
+    settingsBtn.addEventListener('click', () => {
+        if (views.settings.classList.contains('active')) {
+            closeSettings();
+        } else {
+            switchView('settings-view');
+        }
     });
+
+    closeSettingsBtn.addEventListener('click', closeSettings);
 
 
     // Theme Switching
@@ -282,9 +292,10 @@ function renderWordList() {
 
         const fcStartBtn = document.createElement('button');
         fcStartBtn.className = 'primary-btn small';
-        fcStartBtn.innerHTML = '<ion-icon name="copy-outline"></ion-icon> Start Flash Cards';
+        fcStartBtn.innerHTML = '<ion-icon name="shuffle-outline"></ion-icon> Start Random';
         fcStartBtn.onclick = () => {
-            startFlashCards(pageWords);
+            const shuffled = [...pageWords].sort(() => 0.5 - Math.random());
+            startFlashCards(shuffled);
         };
 
         headerDiv.appendChild(backBtn);
@@ -332,10 +343,10 @@ function renderGroups(words) {
 }
 
 // Flash Card Logic
-function startFlashCards(list) {
+function startFlashCards(list, startIndex = 0) {
     if (!list || list.length === 0) return;
     fcList = list;
-    fcCurrentIndex = 0;
+    fcCurrentIndex = startIndex;
     fcIsFlipped = false;
 
     switchView('flash-card-view');
@@ -345,6 +356,19 @@ function startFlashCards(list) {
 function renderCard() {
     const item = fcList[fcCurrentIndex];
 
+    // Temporarily disable transition to prevent seeing the new back content
+    fcCard.style.transition = 'none';
+    fcCard.classList.remove('flipped');
+    fcIsFlipped = false;
+
+    // Force reflow to apply the class removal instantly
+    void fcCard.offsetWidth;
+
+    // Restore transition after a brief delay
+    setTimeout(() => {
+        fcCard.style.transition = '';
+    }, 50);
+
     // Front
     fcWord.textContent = item.word;
 
@@ -352,10 +376,6 @@ function renderCard() {
     fcMeaning.innerHTML = `<span class="pos">${item.pos}</span> ${item.meaning}`;
     fcExample.textContent = item.example;
     fcExampleJa.textContent = item.example_ja || '';
-
-    // Reset Flip
-    fcCard.classList.remove('flipped');
-    fcIsFlipped = false;
 
     // Progress
     fcProgress.textContent = `${fcCurrentIndex + 1} / ${fcList.length}`;
@@ -404,12 +424,13 @@ function handleSwipe() {
 
 
 function renderWords(words) {
-    words.forEach(item => {
+    words.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'word-item';
         div.innerHTML = `
             <div class="word-header">
                 <div class="word-title">
+                    <span class="word-index">${index + 1}.</span>
                     <span class="word">${item.word}</span>
                     <span class="pos">${item.pos}</span>
                     <button class="audio-btn" aria-label="Listen">
@@ -429,6 +450,11 @@ function renderWords(words) {
             speakWord(item.word);
         });
 
+        // Add click listener for row to start flashcards
+        div.addEventListener('click', () => {
+            startFlashCards(words, index);
+        });
+
         wordListEl.appendChild(div);
     });
 }
@@ -443,25 +469,16 @@ function populateVoiceList() {
 
     // Target voices in preferred order with metadata
     const targetVoices = [
-        { name: 'Google UK English Female', label: 'UK Female', icon: 'woman-outline', color: '#ff7675', type: 'UK' },
-        { name: 'Google UK English Male', label: 'UK Male', icon: 'man-outline', color: '#74b9ff', type: 'UK' },
-        { name: 'Google US English', label: 'US English', icon: 'earth-outline', color: '#55efc4', type: 'US' },
-        { name: 'Microsoft David', label: 'David (US)', icon: 'person-outline', color: '#a29bfe', type: 'US' },
-        { name: 'Microsoft Mark', label: 'Mark (US)', icon: 'person-outline', color: '#6c5ce7', type: 'US' },
-        { name: 'Microsoft Zira', label: 'Zira (US)', icon: 'woman-outline', color: '#fd79a8', type: 'US' },
-        // User requested additions (likely iOS/macOS)
-        { name: 'Fenrir', label: 'Fenrir', icon: 'man-outline', color: '#636e72', type: 'Special' },
-        { name: 'Leda', label: 'Leda', icon: 'woman-outline', color: '#fab1a0', type: 'Special' },
-        { name: 'Charon', label: 'Charon', icon: 'man-outline', color: '#2d3436', type: 'Special' },
-        { name: 'Kore', label: 'Kore', icon: 'woman-outline', color: '#e17055', type: 'Special' }
+        { name: 'Samantha', label: 'Samantha (US)', icon: 'woman-outline', color: '#ff7675', type: 'US' },
+        { name: 'Bells', label: 'ベル (US)', icon: 'notifications-outline', color: '#fab1a0', type: 'Novelty' },
+        { name: 'Bubbles', label: 'Bubble (US)', icon: 'water-outline', color: '#74b9ff', type: 'Novelty' },
+        { name: 'Jester', label: '道化 (US)', icon: 'happy-outline', color: '#fdcb6e', type: 'Novelty' }
     ];
 
     voiceContainer.innerHTML = '';
 
-    // Track added voices to avoid duplicates or missing regions
+    // Track added voices to avoid duplicates
     const addedURIs = new Set();
-    let hasUS = false;
-    let hasUK = false;
 
     // Helper to create button
     const createBtn = (voice, label, icon, color) => {
@@ -495,51 +512,25 @@ function populateVoiceList() {
         addedURIs.add(voice.voiceURI);
     };
 
-    // 1. Try to find specific target voices
+    // 1. Try to find specific target voices (Exact or partial match)
     targetVoices.forEach(target => {
+        // Match by name loosely
         const voice = voices.find(v => v.name.includes(target.name));
         if (voice) {
             createBtn(voice, target.label, target.icon, target.color);
-            if (target.type === 'US') hasUS = true;
-            if (target.type === 'UK') hasUK = true;
         }
     });
 
-    // 2. Mobile/Fallback: Discover ALL other English voices
-    voices.forEach(voice => {
-        if (!addedURIs.has(voice.voiceURI) && voice.lang.startsWith('en')) {
-            // Determine icon and color based on region/name
-            let icon = 'mic-outline';
-            let color = '#b2bec3';
-            let label = voice.name;
+    // 2. Fallback: If NONE of the requested voices found (e.g. non-iOS), show default English
+    // This ensures the app isn't broken on PC/Android
+    if (addedURIs.size === 0) {
+        const defaultVoice = voices.find(v => v.name.includes('Google US English')) ||
+            voices.find(v => v.lang.startsWith('en')) ||
+            voices[0];
 
-            // Simple cleanup for clean labels on mobile
-            label = label.replace('English (United States)', '').replace('English (United Kingdom)', '').trim();
-            if (!label) label = voice.name; // Revert if empty
-
-            if (voice.lang === 'en-US' || voice.lang === 'en_US') {
-                icon = 'earth-outline';
-                color = '#55efc4';
-                if (!label.includes('(US)')) label += ' (US)';
-            } else if (voice.lang === 'en-GB' || voice.lang === 'en_GB') {
-                icon = 'earth-outline';
-                color = '#74b9ff';
-                if (!label.includes('(UK)')) label += ' (UK)';
-            } else {
-                // AU, IN, etc.
-                icon = 'globe-outline';
-                color = '#fdcb6e';
-                label += ` (${voice.lang.split('-')[1] || voice.lang})`;
-            }
-
-            createBtn(voice, label, icon, color);
+        if (defaultVoice) {
+            createBtn(defaultVoice, 'Default English', 'volume-high-outline', '#b2bec3');
         }
-    });
-
-    // 3. Last Resort: Default if nothing added
-    if (addedURIs.size === 0 && voices.length > 0) {
-        // Usually the first one is default
-        createBtn(voices[0], 'Default', 'volume-high-outline', '#b2bec3');
     }
 }
 
