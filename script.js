@@ -846,7 +846,7 @@ function populateVoiceList() {
     const targetVoices = [
         // iOS / Mac
         { searchNames: ['Samantha'], label: 'Samantha (US)', icon: 'woman-outline', color: '#ff7675', type: 'US' },
-        { searchNames: ['Ava', 'Ava（プレミアム）', 'プレミアム'], label: 'Ava (Premium)', icon: 'sparkles-outline', color: '#a29bfe', type: 'US' },
+        { searchNames: ['Ava', 'Alva', 'Ava（プレミアム）', 'プレミアム'], label: 'Ava (Premium)', icon: 'sparkles-outline', color: '#a29bfe', type: 'US' },
         { searchNames: ['Evan', 'Evan（拡張）', '拡張'], label: 'Evan (Enhanced)', icon: 'flash-outline', color: '#6c5ce7', type: 'US' },
         { searchNames: ['Bells', 'Bell', 'ベル'], label: 'Bells (US)', icon: 'notifications-outline', color: '#fab1a0', type: 'Novelty' },
         { searchNames: ['Bubbles', 'Bubble', 'バブル'], label: 'Bubbles (US)', icon: 'water-outline', color: '#74b9ff', type: 'Novelty' },
