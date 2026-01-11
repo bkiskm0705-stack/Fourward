@@ -846,8 +846,8 @@ function populateVoiceList() {
     const targetVoices = [
         // iOS / Mac
         { searchNames: ['Samantha'], label: 'Samantha (US)', icon: 'woman-outline', color: '#ff7675', type: 'US' },
-        { searchNames: ['Ava', 'Alva', 'Ava（プレミアム）', 'プレミアム'], label: 'Ava (Premium)', icon: 'sparkles-outline', color: '#a29bfe', type: 'US' },
-        { searchNames: ['Evan', 'Evan（拡張）', '拡張'], label: 'Evan (Enhanced)', icon: 'flash-outline', color: '#6c5ce7', type: 'US' },
+        { searchNames: ['Karen'], label: 'Karen (AU)', icon: 'woman-outline', color: '#a29bfe', type: 'AU' },
+        { searchNames: ['Daniel'], label: 'Daniel (UK)', icon: 'man-outline', color: '#6c5ce7', type: 'UK' },
         { searchNames: ['Bells', 'Bell', 'ベル'], label: 'Bells (US)', icon: 'notifications-outline', color: '#fab1a0', type: 'Novelty' },
         { searchNames: ['Bubbles', 'Bubble', 'バブル'], label: 'Bubbles (US)', icon: 'water-outline', color: '#74b9ff', type: 'Novelty' },
         { searchNames: ['Jester', '道化', '道化師'], label: 'Jester (US)', icon: 'happy-outline', color: '#fdcb6e', type: 'Novelty' },
