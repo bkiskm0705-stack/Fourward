@@ -145,11 +145,11 @@ function setupEventListeners() {
 
     // Setup Listening Mode
     function initListeningMode() {
-        // Update voice label
-        const voice = voices.find(v => v.voiceURI === currentVoiceURI);
-        if (voice) {
-            listeningVoiceLabel.textContent = voice.name;
-        }
+        // Update voice label - Removed as element doesn't exist
+        // const voice = voices.find(v => v.voiceURI === currentVoiceURI);
+        // if (voice && listeningVoiceLabel) {
+        //     listeningVoiceLabel.textContent = voice.name;
+        // }
 
         // Prepare UI
         listeningInputContainer.classList.remove('hidden');
@@ -159,8 +159,16 @@ function setupEventListeners() {
 
     // Start Button
     listeningStartBtn.addEventListener('click', () => {
-        const text = listeningTextInput.value.trim();
-        if (!text) return; // Simple validation
+        console.log('Start Listening clicked');
+        let text = listeningTextInput.value.trim();
+        if (!text) {
+            text = listeningTextInput.placeholder;
+        }
+
+        if (!text) {
+            alert('Please enter some text or ensure placeholder text is available.');
+            return;
+        }
         startListeningSession(text);
     });
 
@@ -750,7 +758,7 @@ function populateVoiceList() {
         };
 
         targetVoices.forEach(target => {
-            const voice = voices.find(v => target.searchNames.some(name => v.name.includes(name)));
+            const voice = voices.find(v => target.searchNames.some(name => v.name.toLowerCase().includes(name.toLowerCase())));
             if (voice) {
                 createBtn(voice, target.label, target.icon, target.color);
             }
