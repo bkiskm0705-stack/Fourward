@@ -165,6 +165,17 @@ function setupEventListeners() {
         listeningInputContainer.classList.remove('hidden');
         listeningPlayerContainer.classList.add('hidden');
         listeningTextInput.value = '';
+
+        // Reset loop and blind mode states
+        listeningLoopEnabled = false;
+        listeningLoopBtn.classList.remove('active');
+
+        listeningBlindEnabled = false;
+        listeningBlindBtn.classList.remove('active');
+        listeningTextDisplay.classList.remove('blinded');
+        listeningBlindOverlay.classList.add('hidden');
+        const blindIcon = listeningBlindBtn.querySelector('ion-icon');
+        if (blindIcon) blindIcon.name = 'eye-outline';
     }
 
     // Start Button
@@ -826,8 +837,8 @@ function populateVoiceList() {
     const targetVoices = [
         // iOS / Mac
         { searchNames: ['Samantha'], label: 'Samantha (US)', icon: 'woman-outline', color: '#ff7675', type: 'US' },
-        { searchNames: ['Ava'], label: 'Ava (Premium)', icon: 'sparkles-outline', color: '#a29bfe', type: 'US' },
-        { searchNames: ['Evan'], label: 'Evan (Enhanced)', icon: 'flash-outline', color: '#6c5ce7', type: 'US' },
+        { searchNames: ['Ava', 'Ava（プレミアム）', 'プレミアム'], label: 'Ava (Premium)', icon: 'sparkles-outline', color: '#a29bfe', type: 'US' },
+        { searchNames: ['Evan', 'Evan（拡張）', '拡張'], label: 'Evan (Enhanced)', icon: 'flash-outline', color: '#6c5ce7', type: 'US' },
         { searchNames: ['Bells', 'Bell', 'ベル'], label: 'Bells (US)', icon: 'notifications-outline', color: '#fab1a0', type: 'Novelty' },
         { searchNames: ['Bubbles', 'Bubble', 'バブル'], label: 'Bubbles (US)', icon: 'water-outline', color: '#74b9ff', type: 'Novelty' },
         { searchNames: ['Jester', '道化', '道化師'], label: 'Jester (US)', icon: 'happy-outline', color: '#fdcb6e', type: 'Novelty' },

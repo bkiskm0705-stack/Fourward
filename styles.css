@@ -1113,13 +1113,13 @@ body {
 .loop-btn {
     position: relative;
     transition: all 0.3s ease;
+    min-width: 50px;
 }
 
 .loop-btn.active {
     color: var(--primary-light);
     background: rgba(108, 92, 231, 0.2);
     border-radius: 12px;
-    padding: 0.5rem 0.8rem;
 }
 
 .loop-btn.active ion-icon {
@@ -1154,13 +1154,13 @@ body {
 .blind-btn {
     position: relative;
     transition: all 0.3s ease;
+    min-width: 50px;
 }
 
 .blind-btn.active {
     color: var(--primary-light);
     background: rgba(108, 92, 231, 0.2);
     border-radius: 12px;
-    padding: 0.5rem 0.8rem;
 }
 
 .blind-btn.active ion-icon {
