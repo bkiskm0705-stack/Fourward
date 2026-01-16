@@ -252,29 +252,49 @@ class AudioService {
 
         // Determine voice
         // Currently selected voice in app state (from simple selector)
-        // We will store 'MALE' or 'FEMALE' in currentVoiceURI for the new simplified selector
         let targetVoice = preferredVoiceId || currentVoiceURI;
 
-        // Fallback for Web Speech legacy IDs
-        if (!['MALE', 'FEMALE'].includes(targetVoice) && !targetVoice.startsWith('en-US-Neural2')) {
-            targetVoice = 'FEMALE'; // Default to female neural
-        }
+        // CHECK: Is this a Neural voice (Cloud) or a Standard voice (OS)?
+        // Neural voices handle: MALE, FEMALE, en-US-Neural2...
+        // Standard voices: STANDARD_M, STANDARD_F
+        const isNeural = (targetVoice === 'MALE' || targetVoice === 'FEMALE' || targetVoice.startsWith('en-US-Neural2'));
 
-        try {
-            const audioUrl = await this.getAudio(text, targetVoice);
-            if (audioUrl) {
-                const audio = new Audio(audioUrl);
-                audio.play();
-                return;
+        if (isNeural) {
+            try {
+                const audioUrl = await this.getAudio(text, targetVoice);
+                if (audioUrl) {
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    return;
+                }
+            } catch (e) {
+                console.error('Cloud TTS failed, falling back to Web Speech API', e);
             }
-        } catch (e) {
-            console.error('Cloud TTS failed, falling back to Web Speech API', e);
         }
 
-        // Fallback: Web Speech API
-        // This runs if API Key is invalid, quota exceeded, or network error on first fetch
+        // Fallback or Standard Choice: Web Speech API
+        // This supports background audio mixing (ducking) on many devices
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
+
+        // Apply voice if specific standard voice logic
+        if (!isNeural) {
+            const voices = window.speechSynthesis.getVoices();
+            let selected = null;
+
+            // Try to find a good match for "Male" or "Female" standard
+            if (targetVoice === 'STANDARD_M') {
+                selected = voices.find(v => (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Daniel')) && v.lang.startsWith('en'));
+            } else if (targetVoice === 'STANDARD_F') {
+                selected = voices.find(v => (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha')) && v.lang.startsWith('en'));
+            } else {
+                // Try exact match or nothing
+                selected = voices.find(v => v.voiceURI === targetVoice || v.name === targetVoice);
+            }
+
+            if (selected) utterance.voice = selected;
+        }
+
         window.speechSynthesis.speak(utterance);
     }
 }
@@ -1225,7 +1245,10 @@ function renderVoiceSelector(containerId) {
     // Define the options we want to show
     const options = [
         { id: 'MALE', label: 'Male (Neural)', icon: 'man-outline', color: '#6c5ce7' },
-        { id: 'FEMALE', label: 'Female (Neural)', icon: 'woman-outline', color: '#ff7675' }
+        { id: 'FEMALE', label: 'Female (Neural)', icon: 'woman-outline', color: '#ff7675' },
+        // Standard Options for Background Audio Mixing
+        { id: 'STANDARD_M', label: 'Male (Standard)', icon: 'man', color: '#b2bec3' },
+        { id: 'STANDARD_F', label: 'Female (Standard)', icon: 'woman', color: '#b2bec3' }
     ];
 
     options.forEach(opt => {
