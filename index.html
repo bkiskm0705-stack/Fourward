@@ -21,7 +21,7 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <h1>TOEFL Vocab <span class="version">ver.1.07</span></h1>
+            <h1>TOEFL Vocab <span class="version">ver.1.08</span></h1>
             <div class="header-actions">
                 <button id="settings-btn" aria-label="Settings">
                     <ion-icon name="settings-outline"></ion-icon>
@@ -151,18 +151,22 @@ The preview of me"></textarea>
                 </div>
             </div>
 
-            <!-- Flash Card View -->
             <div id="flash-card-view" class="view">
                 <div class="fc-header">
-                    <button id="fc-close-btn" class="icon-btn" aria-label="Close">
-                        <ion-icon name="close-outline"></ion-icon>
+                    <button id="fc-close-btn" class="fc-close-btn" aria-label="Close">
+                        <ion-icon name="arrow-back-outline"></ion-icon>
+                        <span>Back</span>
                     </button>
                     <span id="fc-progress">1 / 100</span>
+                    <div style="width: 60px;"></div> <!-- Spacer for balance -->
                 </div>
 
                 <div class="fc-container">
                     <div class="flash-card" id="flash-card">
                         <div class="fc-front">
+                            <button class="fc-review-btn" id="fc-review-btn-front" aria-label="Review">
+                                <ion-icon name="bookmark-outline"></ion-icon>
+                            </button>
                             <div class="fc-content">
                                 <h1 id="fc-word">Word</h1>
                                 <button id="fc-audio-btn" class="fc-audio-btn">
@@ -172,6 +176,9 @@ The preview of me"></textarea>
                             <span class="fc-hint">Tap to flip</span>
                         </div>
                         <div class="fc-back">
+                            <button class="fc-review-btn" id="fc-review-btn-back" aria-label="Review">
+                                <ion-icon name="bookmark-outline"></ion-icon>
+                            </button>
                             <div class="fc-content">
                                 <h2 id="fc-meaning">Meaning</h2>
                                 <div class="fc-example-box">
@@ -251,7 +258,7 @@ The preview of me"></textarea>
     </div>
 
     <script src="config.js"></script>
-    <script src="script.js?v=1.07"></script>
+    <script src="script.js?v=1.08"></script>
 </body>
 
 </html>

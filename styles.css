@@ -49,14 +49,63 @@
     --primary-dark: #1c5980;
     --secondary-color: #ecf0f1;
     --background-dark: #000000;
-    --surface-dark: #121212;
+    --surface-dark: #0a0a0a;
     --text-primary: #ffffff;
-    --text-secondary: #bdc3c7;
+    --text-secondary: #95a5a6;
     --gradient-primary: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
 
-    --header-bg: rgba(0, 0, 0, 0.8);
-    --nav-bg: rgba(0, 0, 0, 0.95);
-    --nav-border: rgba(255, 255, 255, 0.1);
+    --header-bg: rgba(10, 10, 10, 0.95);
+    --nav-bg: rgba(10, 10, 10, 0.98);
+    --nav-border: rgba(52, 152, 219, 0.3);
+}
+
+/* Midnight Theme - Enhanced UI Elements */
+[data-theme="midnight"] .word-item {
+    border: 1px solid rgba(52, 152, 219, 0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 1px rgba(52, 152, 219, 0.3);
+}
+
+[data-theme="midnight"] .word-item:hover {
+    border-color: rgba(52, 152, 219, 0.4);
+}
+
+[data-theme="midnight"] .flash-card .fc-front,
+[data-theme="midnight"] .flash-card .fc-back {
+    border: 1px solid rgba(52, 152, 219, 0.25);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(52, 152, 219, 0.1);
+}
+
+[data-theme="midnight"] .group-btn {
+    border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+[data-theme="midnight"] .group-btn:hover {
+    border-color: rgba(52, 152, 219, 0.5);
+    box-shadow: 0 0 15px rgba(52, 152, 219, 0.2);
+}
+
+[data-theme="midnight"] .search-bar input {
+    border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+[data-theme="midnight"] .search-bar input:focus {
+    border-color: rgba(52, 152, 219, 0.5);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+[data-theme="midnight"] .back-action-btn {
+    background: rgba(52, 152, 219, 0.1) !important;
+    border-color: rgba(52, 152, 219, 0.3) !important;
+}
+
+[data-theme="midnight"] .fc-close-btn {
+    background: rgba(52, 152, 219, 0.1);
+    border-color: rgba(52, 152, 219, 0.3);
+}
+
+[data-theme="midnight"] .fc-review-btn {
+    background: rgba(52, 152, 219, 0.1);
+    border-color: rgba(52, 152, 219, 0.3);
 }
 
 * {
@@ -290,6 +339,48 @@ body {
     transform: scale(0.9);
 }
 
+/* Example Japanese Row with Review Button */
+.example-ja-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.example-ja-row .example-ja {
+    flex: 1;
+}
+
+/* Review Button (Word List) */
+.review-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+    padding: 0.4rem;
+    border-radius: 8px;
+}
+
+.review-btn:hover {
+    color: var(--primary-light);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.review-btn.active {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+.review-btn:active {
+    transform: scale(0.9);
+}
+
 .pos {
     font-size: 0.8rem;
     color: var(--secondary-color);
@@ -481,6 +572,74 @@ body {
     width: 100%;
     margin-top: 1rem;
     cursor: pointer;
+}
+
+/* Small Button Variant */
+.primary-btn.small,
+.secondary-btn.small {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    width: auto;
+    margin-top: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.secondary-btn.small {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Review Start Button */
+.review-start-btn {
+    background: linear-gradient(135deg, #ffd700 0%, #f0c000 100%) !important;
+    color: #1a1a2e !important;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4) !important;
+    flex: 1 !important;
+    max-width: none !important;
+}
+
+.review-start-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Back Action Button - Neutral Color */
+.back-action-btn {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: none !important;
+}
+
+.back-action-btn:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="nature"] .back-action-btn {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="nature"] .back-action-btn:hover {
+    background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* List Header Actions - Even Distribution */
+.list-header-actions {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.list-header-actions .primary-btn.small {
+    flex: 1 1 0;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    padding: 0.5rem 0.3rem;
+    font-size: 0.75rem;
+    min-width: 0;
 }
 
 /* Settings */
@@ -715,22 +874,103 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 1.5rem;
     margin-bottom: 1rem;
     padding: 0 0.5rem;
 }
 
-#fc-close-btn {
-    font-size: 2rem;
-    color: var(--text-secondary);
-    background: none;
-    border: none;
+/* Flash Card Close Button (Stylish) */
+.fc-close-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 25px;
+    padding: 0.5rem 1rem 0.5rem 0.7rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.fc-close-btn ion-icon {
+    font-size: 1.2rem;
+}
+
+.fc-close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(-3px);
+}
+
+.fc-close-btn:active {
+    transform: scale(0.95);
+}
+
+[data-theme="nature"] .fc-close-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: var(--text-primary);
+}
+
+[data-theme="nature"] .fc-close-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
 }
 
 #fc-progress {
     font-size: 1rem;
     font-weight: 600;
     color: var(--primary-light);
+}
+
+/* Flash Card Review Button - Inside Card Top Right */
+.fc-review-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+    font-size: 1.3rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.fc-review-btn:hover {
+    color: var(--primary-light);
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.fc-review-btn.active {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.fc-review-btn:active {
+    transform: scale(0.9);
+}
+
+[data-theme="nature"] .fc-review-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="nature"] .fc-review-btn.active {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.4);
 }
 
 .fc-container {
@@ -741,6 +981,7 @@ body {
     perspective: 1000px;
     /* 3D effect */
     margin-bottom: 1rem;
+    position: relative;
 }
 
 .flash-card {

@@ -61,6 +61,33 @@ let touchEndX = 0;
 let lastActiveView = 'list-view'; // Track last active view for settings return
 let isSwiping = false;
 
+// Review List State (persisted in localStorage)
+let reviewList = JSON.parse(localStorage.getItem('reviewList') || '{}');
+
+function isWordInReviewList(word) {
+    return reviewList[word] === true;
+}
+
+function toggleReviewWord(word) {
+    if (reviewList[word]) {
+        delete reviewList[word];
+    } else {
+        reviewList[word] = true;
+    }
+    localStorage.setItem('reviewList', JSON.stringify(reviewList));
+    return reviewList[word] === true;
+}
+
+// Helper to update Start Review button count dynamically
+function updateReviewStartBtn(pageWords) {
+    const btn = document.getElementById('fc-review-start-btn');
+    if (!btn) return;
+
+    const reviewCount = pageWords.filter(w => isWordInReviewList(w.word)).length;
+    btn.innerHTML = `<ion-icon name="bookmark"></ion-icon> Start Review (${reviewCount})`;
+    btn.disabled = reviewCount === 0;
+}
+
 
 // Mock Data (Fallback)
 // Mock Data (Fallback)
@@ -468,7 +495,10 @@ function setupEventListeners() {
     // nextQBtn.addEventListener('click', nextQuestion);
 
     // Flash Cards
-    fcCloseBtn.addEventListener('click', () => switchView('list-view'));
+    fcCloseBtn.addEventListener('click', () => {
+        renderWordList(); // Refresh to update review button states
+        switchView('list-view');
+    });
     fcCard.addEventListener('click', () => {
         if (!isSwiping) flipCard();
     });
@@ -503,6 +533,29 @@ function setupEventListeners() {
         const example = fcList[fcCurrentIndex].example;
         speakWord(example);
     });
+
+    // Flash card review button
+    // Flash card review buttons (front and back)
+    const fcReviewBtnFront = document.getElementById('fc-review-btn-front');
+    const fcReviewBtnBack = document.getElementById('fc-review-btn-back');
+
+    const updateBothReviewBtns = (isInReview) => {
+        [fcReviewBtnFront, fcReviewBtnBack].forEach(btn => {
+            btn.classList.toggle('active', isInReview);
+            const icon = btn.querySelector('ion-icon');
+            icon.name = isInReview ? 'bookmark' : 'bookmark-outline';
+        });
+    };
+
+    const handleReviewClick = (e) => {
+        e.stopPropagation();
+        const currentWord = fcList[fcCurrentIndex].word;
+        const isNowInReview = toggleReviewWord(currentWord);
+        updateBothReviewBtns(isNowInReview);
+    };
+
+    fcReviewBtnFront.addEventListener('click', handleReviewClick);
+    fcReviewBtnBack.addEventListener('click', handleReviewClick);
 
     // Initialize Voices
     populateVoiceList();
@@ -633,8 +686,8 @@ function renderWordList() {
         headerDiv.className = 'list-header-actions';
 
         const backBtn = document.createElement('button');
-        backBtn.className = 'back-btn';
-        backBtn.innerHTML = '<ion-icon name="arrow-back-outline"></ion-icon> Back to Vocab';
+        backBtn.className = 'primary-btn small back-action-btn';
+        backBtn.innerHTML = '<ion-icon name="arrow-back-outline"></ion-icon> Back';
         backBtn.onclick = () => {
             currentGroupIndex = null;
             renderWordList();
@@ -648,8 +701,25 @@ function renderWordList() {
             startFlashCards(shuffled);
         };
 
+        // Start Review button (only review words in this group)
+        const reviewWords = pageWords.filter(w => isWordInReviewList(w.word));
+        const fcReviewStartBtn = document.createElement('button');
+        fcReviewStartBtn.className = 'primary-btn small review-start-btn';
+        fcReviewStartBtn.id = 'fc-review-start-btn';
+        fcReviewStartBtn.innerHTML = `<ion-icon name="bookmark"></ion-icon> Start Review (${reviewWords.length})`;
+        fcReviewStartBtn.disabled = reviewWords.length === 0;
+        fcReviewStartBtn.onclick = () => {
+            // Recalculate at click time to get current review words
+            const currentReviewWords = pageWords.filter(w => isWordInReviewList(w.word));
+            if (currentReviewWords.length > 0) {
+                const shuffled = [...currentReviewWords].sort(() => 0.5 - Math.random());
+                startFlashCards(shuffled);
+            }
+        };
+
         headerDiv.appendChild(backBtn);
         headerDiv.appendChild(fcStartBtn);
+        headerDiv.appendChild(fcReviewStartBtn);
         wordListEl.appendChild(headerDiv);
 
         renderWords(pageWords);
@@ -729,6 +799,14 @@ function renderCard() {
 
     // Progress
     fcProgress.textContent = `${fcCurrentIndex + 1} / ${fcList.length}`;
+
+    // Update review button state on both sides
+    const isInReview = isWordInReviewList(item.word);
+    [document.getElementById('fc-review-btn-front'), document.getElementById('fc-review-btn-back')].forEach(btn => {
+        btn.classList.toggle('active', isInReview);
+        const icon = btn.querySelector('ion-icon');
+        icon.name = isInReview ? 'bookmark' : 'bookmark-outline';
+    });
 }
 
 function flipCard() {
@@ -777,6 +855,7 @@ function renderWords(words) {
     words.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'word-item';
+        const isInReview = isWordInReviewList(item.word);
         div.innerHTML = `
             <div class="word-header">
                 <div class="word-title">
@@ -790,7 +869,12 @@ function renderWords(words) {
             </div>
             <div class="meaning">${item.meaning}</div>
             <div class="example">"${item.example}"</div>
-            ${item.example_ja ? `<div class="example-ja">${item.example_ja}</div>` : ''}
+            <div class="example-ja-row">
+                <span class="example-ja">${item.example_ja || ''}</span>
+                <button class="review-btn ${isInReview ? 'active' : ''}" aria-label="Review">
+                    <ion-icon name="${isInReview ? 'bookmark' : 'bookmark-outline'}"></ion-icon>
+                </button>
+            </div>
         `;
 
         // Add click listener for audio
@@ -798,6 +882,19 @@ function renderWords(words) {
         audioBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent triggering other clicks if any
             speakWord(item.word);
+        });
+
+        // Add click listener for review button
+        const reviewBtn = div.querySelector('.review-btn');
+        reviewBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isNowInReview = toggleReviewWord(item.word);
+            reviewBtn.classList.toggle('active', isNowInReview);
+            const icon = reviewBtn.querySelector('ion-icon');
+            icon.name = isNowInReview ? 'bookmark' : 'bookmark-outline';
+
+            // Update Start Review button count
+            updateReviewStartBtn(words);
         });
 
         // Add click listener for row to start flashcards
