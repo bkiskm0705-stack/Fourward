@@ -186,7 +186,7 @@ body {
 .app-content {
     flex: 1;
     overflow-y: auto;
-    padding: 60px 1rem 80px 1rem;
+    padding: 70px 1rem 80px 1rem;
     /* Top for header, bottom for nav */
     scroll-behavior: smooth;
 }
@@ -604,15 +604,23 @@ body {
     cursor: not-allowed;
 }
 
-/* Back Action Button - Neutral Color */
+/* Back Action Button - Stylish Pill Design (matches fc-close-btn) */
 .back-action-btn {
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 25px !important;
     box-shadow: none !important;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease !important;
 }
 
 .back-action-btn:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    transform: translateX(-2px);
+}
+
+.back-action-btn:active {
+    transform: scale(0.95);
 }
 
 [data-theme="nature"] .back-action-btn {
@@ -622,6 +630,15 @@ body {
 
 [data-theme="nature"] .back-action-btn:hover {
     background: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="midnight"] .back-action-btn {
+    background: rgba(52, 152, 219, 0.1) !important;
+    border-color: rgba(52, 152, 219, 0.3) !important;
+}
+
+[data-theme="midnight"] .back-action-btn:hover {
+    background: rgba(52, 152, 219, 0.2) !important;
 }
 
 /* List Header Actions - Even Distribution */
@@ -971,6 +988,12 @@ body {
 [data-theme="nature"] .fc-review-btn.active {
     background: rgba(255, 215, 0, 0.2);
     border-color: rgba(255, 215, 0, 0.4);
+}
+
+/* Back side button needs left position because it's rotated 180 degrees */
+.fc-back .fc-review-btn {
+    right: auto;
+    left: 1rem;
 }
 
 .fc-container {
@@ -1658,4 +1681,47 @@ body {
 
 .back-btn:hover {
     color: white;
+}
+
+/* --- Listening Mode Styles --- */
+#listening-player-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    /* Compact padding */
+    margin-bottom: 0.5rem;
+    margin-top: 1rem;
+    /* Prevent header overlap */
+    min-height: 40px;
+}
+
+.player-header span {
+    font-weight: 600;
+    color: var(--primary-light);
+    font-size: 0.9rem;
+}
+
+#listening-back-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#listening-back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
 }

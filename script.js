@@ -373,6 +373,9 @@ function setupEventListeners() {
                 return;
             }
 
+            // Reset to beginning so next play starts from the start
+            listeningCurrentCharIndex = 0;
+            listeningPausedAt = 0;
             listeningIsPaused = false;
             updatePlayIcon(false);
             clearHighlights();
