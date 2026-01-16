@@ -1,6 +1,24 @@
-function doGet() {
+function doGet(e) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getActiveSheet(); // Or specify sheet name: ss.getSheetByName('Sheet1');
+
+    // Default to 'TOEFL_Vocabulary' if no sheet param is provided
+    let sheetName = 'TOEFL_Vocabulary';
+    if (e && e.parameter && e.parameter.sheet) {
+        sheetName = e.parameter.sheet;
+    }
+
+    let sheet = ss.getSheetByName(sheetName);
+
+    // Fallback if sheet doesn't exist (e.g. repo typo vs spreadsheet actual name)
+    if (!sheet) {
+        // Try known variations just in case
+        if (sheetName === 'My_Vocabulary') {
+            sheet = ss.getSheetByName('My Vocab') || ss.getSheetByName('My_Vocablary');
+        }
+
+        // If still not found, default to first sheet
+        if (!sheet) sheet = ss.getSheets()[0];
+    }
 
     // Get all data
     const rows = sheet.getDataRange().getValues();

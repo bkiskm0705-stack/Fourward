@@ -21,7 +21,7 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <h1>TOEFL Vocab <span class="version">ver.1.08.3</span></h1>
+            <h1>TOEFL Vocab <span class="version">ver.1.10</span></h1>
             <div class="header-actions">
                 <button id="settings-btn" aria-label="Settings">
                     <ion-icon name="settings-outline"></ion-icon>
@@ -42,6 +42,11 @@
                 <div class="search-bar">
                     <ion-icon name="search-outline"></ion-icon>
                     <input type="text" id="word-search" placeholder="Search words...">
+                </div>
+
+                <div class="sheet-selector">
+                    <button class="sheet-btn active" data-sheet="TOEFL_Vocabulary">TOEFL List</button>
+                    <button class="sheet-btn" data-sheet="My_Vocabulary">My Vocab</button>
                 </div>
 
                 <div id="word-list" class="word-list">
@@ -258,7 +263,7 @@ The preview of me"></textarea>
     </div>
 
     <script src="config.js"></script>
-    <script src="script.js?v=1.08.3"></script>
+    <script src="script.js?v=1.10"></script>
 </body>
 
 </html>

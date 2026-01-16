@@ -40,7 +40,9 @@ const fcExampleJa = document.getElementById('fc-example-ja');
 
 
 // State
+let currentSheet = 'TOEFL_Vocabulary';
 let allWords = [];
+let vocabCache = {}; // Cache for sheet data: { 'SheetName': [data] }
 
 let currentTheme = localStorage.getItem('theme') || 'nebula';
 let currentQuiz = {
@@ -109,7 +111,30 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme(currentTheme);
     fetchWords();
     setupEventListeners();
+    setupSheetSelectors();
 });
+
+function setupSheetSelectors() {
+    const sheetBtns = document.querySelectorAll('.sheet-btn');
+    sheetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sheet = btn.dataset.sheet;
+            if (sheet === currentSheet) return;
+
+            // Update UI
+            sheetBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Switch Sheet
+            currentSheet = sheet;
+            currentGroupIndex = null; // Reset group
+            wordSearchInput.value = ''; // Reset search
+
+            // Fetch new data
+            fetchWords();
+        });
+    });
+}
 
 // Event Listeners
 function setupEventListeners() {
@@ -569,6 +594,19 @@ function setupEventListeners() {
 
 // Data Handling
 async function fetchWords() {
+    // Check cache first
+    if (vocabCache[currentSheet]) {
+        console.log(`Loading ${currentSheet} from cache`);
+        allWords = vocabCache[currentSheet];
+        renderWordList();
+
+        // Ensure we are in list view (if not already)
+        if (document.getElementById('loading-view').classList.contains('active')) {
+            switchView('list-view');
+        }
+        return;
+    }
+
     switchView('loading-view');
 
     let gasUrl = null;
@@ -578,17 +616,22 @@ async function fetchWords() {
 
     if (gasUrl) {
         try {
+            // Append sheet param
+            const url = new URL(gasUrl);
+            url.searchParams.append('sheet', currentSheet);
+
             // Add timeout to prevent hanging
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s
 
-            const response = await fetch(gasUrl, { signal: controller.signal });
+            const response = await fetch(url.toString(), { signal: controller.signal });
             clearTimeout(timeoutId);
 
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
             const data = await response.json();
             if (data && data.length > 0) {
+                vocabCache[currentSheet] = data; // Cache the result
                 allWords = data;
             } else {
                 console.warn('Empty data from GAS, using mock.');
@@ -650,11 +693,14 @@ function renderWordList() {
     const searchTerm = wordSearchInput.value.toLowerCase();
     wordListEl.innerHTML = '';
 
+    const sheetSelector = document.querySelector('.sheet-selector');
+
     // Filter by Type first
     let candidates = allWords;
 
     // If searching, show all matching results (ignores groups)
     if (searchTerm) {
+        if (sheetSelector) sheetSelector.style.display = 'flex';
         const results = candidates.filter(item =>
             item.word.toLowerCase().includes(searchTerm) ||
             item.meaning.includes(searchTerm)
@@ -669,8 +715,10 @@ function renderWordList() {
 
     // Grouping Logic
     if (currentGroupIndex === null) {
+        if (sheetSelector) sheetSelector.style.display = 'flex';
         renderGroups(candidates);
     } else {
+        if (sheetSelector) sheetSelector.style.display = 'none';
         const groupSize = 100;
         const start = currentGroupIndex * groupSize;
         const end = Math.min(start + groupSize, candidates.length);
@@ -747,8 +795,17 @@ function renderGroups(words) {
 
         const btn = document.createElement('div');
         btn.className = 'group-btn';
+
+        // Determine label based on sheet
+        let prefix = 'Vocab';
+        if (currentSheet === 'TOEFL_Vocabulary') {
+            prefix = 'TOEFL';
+        } else if (currentSheet === 'My_Vocabulary') {
+            prefix = 'My';
+        }
+
         btn.innerHTML = `
-            <span>Vocab ${i + 1}</span>
+            <span>${prefix} ${i + 1}</span>
             <small>${start} - ${end}</small>
         `;
 
