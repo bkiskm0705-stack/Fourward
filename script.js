@@ -96,6 +96,12 @@ class AudioService {
 
     async getAudio(text, voiceId) {
         if (!text) return null;
+
+        // Standard voices (Free) should NOT use Cloud TTS
+        if (voiceId === 'STANDARD_M' || voiceId === 'STANDARD_F') {
+            return null; // Force Web Speech API fallback
+        }
+
         const id = `${text}-${voiceId}`; // Unique key based on text and voice
 
         // 1. Try to get from Cache
@@ -624,42 +630,45 @@ function setupEventListeners() {
             return;
         }
 
-        // Try AudioService first (Cloud TTS)
-        // Highlighting logic: We can't do precise word-level highlighting easily with MP3 blob.
-        // We will highlight the starting word to indicate where we are roughly.
+        // Check if we should use Cloud TTS (Pro voices) or Web Speech API (Free voices)
+        const isNeural = (currentVoiceURI === 'MALE' || currentVoiceURI === 'FEMALE' || currentVoiceURI.startsWith('en-US-Neural2'));
+
+        // Highlighting logic
         highlightWord(startIndex);
 
-        try {
-            const audioUrl = await audioService.getAudio(textToSpeak, currentVoiceURI);
+        if (isNeural) {
+            // Try Cloud TTS for Pro voices
+            try {
+                const audioUrl = await audioService.getAudio(textToSpeak, currentVoiceURI);
 
-            if (audioUrl) {
-                const audio = new Audio(audioUrl);
-                currentAudioElement = audio;
+                if (audioUrl) {
+                    const audio = new Audio(audioUrl);
+                    currentAudioElement = audio;
 
-                audio.onended = () => {
-                    if (listeningLoopEnabled) {
-                        playListeningAudio(0);
-                    } else {
-                        listeningIsPaused = false;
+                    audio.onended = () => {
+                        if (listeningLoopEnabled) {
+                            playListeningAudio(0);
+                        } else {
+                            listeningIsPaused = false;
+                            updatePlayIcon(false);
+                            clearHighlights();
+                        }
+                    };
+
+                    audio.onerror = (e) => {
+                        console.error("Audio playback error", e);
                         updatePlayIcon(false);
-                        clearHighlights();
-                    }
-                };
+                    };
 
-                audio.onerror = (e) => {
-                    console.error("Audio playback error", e);
-                    updatePlayIcon(false);
-                };
-
-                audio.play();
-                return;
+                    audio.play();
+                    return;
+                }
+            } catch (e) {
+                console.error("AudioService error in listening mode", e);
             }
-        } catch (e) {
-            console.error("AudioService error in listening mode", e);
         }
 
-        // Fallback: Web Speech API (Old Logic) if Cloud TTS fails or returns null
-        // We keep the old logic as a robust fallback which DOES support highlighting
+        // Use Web Speech API for Free voices or as fallback for Pro voices
         playListeningAudioFallback(startIndex);
     }
 
@@ -672,11 +681,23 @@ function setupEventListeners() {
         listeningUtterance = new SpeechSynthesisUtterance(textToSpeak);
 
         // Voice selection
-        // We need to map our simple ID 'MALE'/'FEMALE' back to a real voice object for Web Speech
+        // Map our voice ID back to a real voice object for Web Speech API
         const voices = window.speechSynthesis.getVoices();
         let voice = null;
-        if (currentVoiceURI === 'MALE') voice = voices.find(v => v.name.includes('David') || v.name.includes('Male'));
-        if (currentVoiceURI === 'FEMALE') voice = voices.find(v => v.name.includes('Zira') || v.name.includes('Female'));
+
+        // Standard (Free) voices - use Web Speech API
+        if (currentVoiceURI === 'STANDARD_M') {
+            voice = voices.find(v => (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Daniel')) && v.lang.startsWith('en'));
+        } else if (currentVoiceURI === 'STANDARD_F') {
+            voice = voices.find(v => (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha')) && v.lang.startsWith('en'));
+        } else if (currentVoiceURI === 'MALE') {
+            // Pro voice fallback (if Cloud TTS failed) - try similar
+            voice = voices.find(v => v.name.includes('David') || v.name.includes('Male'));
+        } else if (currentVoiceURI === 'FEMALE') {
+            // Pro voice fallback (if Cloud TTS failed)
+            voice = voices.find(v => v.name.includes('Zira') || v.name.includes('Female'));
+        }
+
         if (!voice) voice = voices.find(v => v.lang === 'en-US'); // Fallback
 
         if (voice) listeningUtterance.voice = voice;
