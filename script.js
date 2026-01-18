@@ -278,6 +278,8 @@ class AudioService {
         // Standard voices: STANDARD_M, STANDARD_F
         const isNeural = (targetVoice === 'MALE' || targetVoice === 'FEMALE' || targetVoice.startsWith('en-US-Neural2'));
 
+        let startCalled = false;
+
         if (isNeural) {
             try {
                 const audioUrl = await this.getAudio(text, targetVoice);
@@ -285,28 +287,55 @@ class AudioService {
                     const audio = new Audio(audioUrl);
                     this.currentAudio = audio; // Track it
 
+                    // Prevent double onEnd calls
+                    let endCalled = false;
+                    const callOnEnd = () => {
+                        if (!endCalled && onEnd) {
+                            endCalled = true;
+                            onEnd();
+                        }
+                    };
+
                     audio.onended = () => {
                         this.currentAudio = null;
                         URL.revokeObjectURL(audioUrl); // Clean up
-                        if (onEnd) onEnd();
+                        callOnEnd();
                     };
 
                     audio.onerror = () => {
                         this.currentAudio = null;
-                        if (onEnd) onEnd();
+                        callOnEnd();
                     };
 
                     try {
-                        if (onStart) onStart();
+                        if (onStart) {
+                            onStart();
+                            startCalled = true;
+                        }
                         await audio.play();
+
+                        // Fallback timeout for mobile - ensure onEnd gets called
+                        // Use audio duration if available, otherwise estimate
+                        const fallbackDelay = (audio.duration ? audio.duration * 1000 : 10000) + 1000;
+                        setTimeout(() => {
+                            if (this.currentAudio === audio && !audio.ended) {
+                                // Audio should have ended but didn't trigger event
+                                callOnEnd();
+                            }
+                        }, fallbackDelay);
                     } catch (playError) {
                         console.error('Audio play error:', playError);
-                        if (onEnd) onEnd();
+                        callOnEnd();
                     }
                     return;
                 }
             } catch (e) {
                 console.error('Cloud TTS failed, falling back to Web Speech API', e);
+                // Reset if onStart was already called
+                if (startCalled && onEnd) {
+                    onEnd();
+                    startCalled = false;
+                }
             }
         }
 
@@ -333,14 +362,40 @@ class AudioService {
 
         if (selected) utterance.voice = selected;
 
+        // Flag to track if onEnd has been called (prevent double calls)
+        let endCalled = false;
+        const callOnEnd = () => {
+            if (!endCalled && onEnd) {
+                endCalled = true;
+                onEnd();
+            }
+        };
+
+        // Timeout fallback for mobile browsers where onend may not fire
+        // Estimate ~150ms per word average
+        const wordCount = text.split(/\s+/).length;
+        const estimatedDuration = Math.max(2000, wordCount * 400); // Min 2 seconds
+        let timeoutId = null;
+
         utterance.onstart = () => {
-            if (onStart) onStart();
+            if (onStart && !startCalled) onStart();
+            // Set timeout as fallback
+            timeoutId = setTimeout(() => {
+                if (window.speechSynthesis.speaking) {
+                    // Still speaking, extend timeout
+                    timeoutId = setTimeout(callOnEnd, 2000);
+                } else {
+                    callOnEnd();
+                }
+            }, estimatedDuration);
         };
         utterance.onend = () => {
-            if (onEnd) onEnd();
+            if (timeoutId) clearTimeout(timeoutId);
+            callOnEnd();
         };
         utterance.onerror = () => {
-            if (onEnd) onEnd();
+            if (timeoutId) clearTimeout(timeoutId);
+            callOnEnd();
         };
 
         window.speechSynthesis.speak(utterance);
@@ -494,6 +549,23 @@ function setupEventListeners() {
     const listeningLoopBtn = document.getElementById('listening-loop-btn'); // Loop
     const listeningBlindBtn = document.getElementById('listening-blind-btn'); // Blind
 
+    // Template Elements
+    const listeningTemplateBtn = document.getElementById('listening-template-btn');
+    const listeningTemplateListContainer = document.getElementById('listening-template-list-container');
+    const listeningTemplateEditorContainer = document.getElementById('listening-template-editor-container');
+    const templateListBackBtn = document.getElementById('template-list-back-btn');
+    const templateNewBtn = document.getElementById('template-new-btn');
+    const templateList = document.getElementById('template-list');
+    const templateEditorBackBtn = document.getElementById('template-editor-back-btn');
+    const templateSaveBtn = document.getElementById('template-save-btn');
+    const templateTitleInput = document.getElementById('template-title-input');
+    const templateContentInput = document.getElementById('template-content-input');
+    const templateEditorTitle = document.getElementById('template-editor-title');
+
+    // Template State
+    let listeningTemplates = JSON.parse(localStorage.getItem('listeningTemplates') || '[]');
+    let editingTemplateIndex = -1; // -1 means new template
+
     let listeningText = '';
     let listeningUtterance = null;
     let listeningIsPaused = false;
@@ -507,6 +579,147 @@ function setupEventListeners() {
     let listeningPausedAt = 0; // Character index where we paused
     let listeningHighlightInterval = null;
 
+    // --- Template Functions ---
+    function showListeningContainer(containerName) {
+        listeningInputContainer.classList.add('hidden');
+        listeningTemplateListContainer.classList.add('hidden');
+        listeningTemplateEditorContainer.classList.add('hidden');
+        listeningPlayerContainer.classList.add('hidden');
+
+        switch (containerName) {
+            case 'input':
+                listeningInputContainer.classList.remove('hidden');
+                break;
+            case 'templateList':
+                listeningTemplateListContainer.classList.remove('hidden');
+                renderTemplateList();
+                break;
+            case 'templateEditor':
+                listeningTemplateEditorContainer.classList.remove('hidden');
+                break;
+            case 'player':
+                listeningPlayerContainer.classList.remove('hidden');
+                break;
+        }
+    }
+
+    function renderTemplateList() {
+        templateList.innerHTML = '';
+
+        if (listeningTemplates.length === 0) {
+            templateList.innerHTML = `
+                <div class="template-empty">
+                    <ion-icon name="document-text-outline"></ion-icon>
+                    <p>No templates yet.<br>Create one to get started!</p>
+                </div>
+            `;
+            return;
+        }
+
+        listeningTemplates.forEach((template, index) => {
+            const item = document.createElement('div');
+            item.className = 'template-item';
+            item.innerHTML = `
+                <div class="template-item-icon">
+                    <ion-icon name="document-text-outline"></ion-icon>
+                </div>
+                <div class="template-item-info">
+                    <div class="template-item-title">${escapeHtml(template.title)}</div>
+                    <div class="template-item-preview">${escapeHtml(template.content.substring(0, 50))}...</div>
+                </div>
+                <button class="template-item-delete" data-index="${index}">
+                    <ion-icon name="trash-outline"></ion-icon>
+                </button>
+            `;
+
+            // Click to use template
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.template-item-delete')) return;
+                listeningTextInput.value = template.content;
+                showListeningContainer('input');
+            });
+
+            // Delete button
+            const deleteBtn = item.querySelector('.template-item-delete');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(`Delete "${template.title}"?`)) {
+                    listeningTemplates.splice(index, 1);
+                    localStorage.setItem('listeningTemplates', JSON.stringify(listeningTemplates));
+                    renderTemplateList();
+                }
+            });
+
+            templateList.appendChild(item);
+        });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Template Button -> Show Template List
+    if (listeningTemplateBtn) {
+        listeningTemplateBtn.addEventListener('click', () => {
+            showListeningContainer('templateList');
+        });
+    }
+
+    // Template List Back Button
+    if (templateListBackBtn) {
+        templateListBackBtn.addEventListener('click', () => {
+            showListeningContainer('input');
+        });
+    }
+
+    // New Template Button
+    if (templateNewBtn) {
+        templateNewBtn.addEventListener('click', () => {
+            editingTemplateIndex = -1;
+            templateEditorTitle.textContent = 'New Template';
+            templateTitleInput.value = '';
+            templateContentInput.value = '';
+            showListeningContainer('templateEditor');
+        });
+    }
+
+    // Template Editor Back Button
+    if (templateEditorBackBtn) {
+        templateEditorBackBtn.addEventListener('click', () => {
+            showListeningContainer('templateList');
+        });
+    }
+
+    // Template Save Button
+    if (templateSaveBtn) {
+        templateSaveBtn.addEventListener('click', () => {
+            const title = templateTitleInput.value.trim();
+            const content = templateContentInput.value.trim();
+
+            if (!title) {
+                alert('Please enter a title.');
+                return;
+            }
+            if (!content) {
+                alert('Please enter content.');
+                return;
+            }
+
+            const newTemplate = { title, content, createdAt: Date.now() };
+
+            if (editingTemplateIndex >= 0) {
+                listeningTemplates[editingTemplateIndex] = newTemplate;
+            } else {
+                listeningTemplates.push(newTemplate);
+            }
+
+            localStorage.setItem('listeningTemplates', JSON.stringify(listeningTemplates));
+            showListeningContainer('templateList');
+        });
+    }
+
     // Setup Listening Mode
     function initListeningMode() {
         // Update voice label - Removed as element doesn't exist
@@ -515,9 +728,8 @@ function setupEventListeners() {
         //     listeningVoiceLabel.textContent = voice.name;
         // }
 
-        // Prepare UI
-        listeningInputContainer.classList.remove('hidden');
-        listeningPlayerContainer.classList.add('hidden');
+        // Prepare UI - use helper function
+        showListeningContainer('input');
         listeningTextInput.value = '';
 
         // Reset loop and blind mode states
@@ -801,7 +1013,24 @@ function setupEventListeners() {
         }
     };
 
-    // ... (Loop and Blind button logic remains the same)
+    // Loop Button
+    listeningLoopBtn.onclick = () => {
+        listeningLoopEnabled = !listeningLoopEnabled;
+        listeningLoopBtn.classList.toggle('active', listeningLoopEnabled);
+    };
+
+    // Blind Button
+    listeningBlindBtn.onclick = () => {
+        listeningBlindEnabled = !listeningBlindEnabled;
+        listeningBlindBtn.classList.toggle('active', listeningBlindEnabled);
+        listeningTextDisplay.classList.toggle('blinded', listeningBlindEnabled);
+        listeningBlindOverlay.classList.toggle('hidden', !listeningBlindEnabled);
+
+        const blindIcon = listeningBlindBtn.querySelector('ion-icon');
+        if (blindIcon) {
+            blindIcon.name = listeningBlindEnabled ? 'eye-off-outline' : 'eye-outline';
+        }
+    };
 
     function stopListening() {
         if (currentAudioElement) {
@@ -819,6 +1048,9 @@ function setupEventListeners() {
     }
 
     function highlightWord(charIndex) {
+        // Update current character index for RW/FF functionality
+        listeningCurrentCharIndex = charIndex;
+
         // Find the span that contains this charIndex
         const match = listeningCharIndices.find(item =>
             charIndex >= item.start && charIndex < item.end

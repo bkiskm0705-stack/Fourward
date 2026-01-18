@@ -21,7 +21,7 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <h1>TOEFL Vocab <span class="version">ver.1.16</span></h1>
+            <h1>TOEFL Vocab <span class="version">ver.1.20</span></h1>
             <div class="header-actions">
                 <button id="settings-btn" aria-label="Settings">
                     <ion-icon name="settings-outline"></ion-icon>
@@ -69,7 +69,13 @@
                 <!-- Input Step -->
                 <div id="listening-input-container">
                     <div class="input-header">
-                        <h2>Listening Practice</h2>
+                        <div class="input-header-top">
+                            <h2>Listening Practice</h2>
+                            <button id="listening-template-btn" class="template-btn">
+                                <ion-icon name="folder-outline"></ion-icon>
+                                <span>Template</span>
+                            </button>
+                        </div>
                         <p class="subtitle">Paste your text below to start</p>
                     </div>
                     <textarea id="listening-text-input" placeholder="Just like the sole of a worn-out shoe
@@ -91,6 +97,50 @@ The preview of me"></textarea>
                             <!-- Buttons injected by JS -->
                         </div>
                         <button id="listening-start-btn" class="primary-btn">Start Listening</button>
+                    </div>
+                </div>
+
+                <!-- Template List Step -->
+                <div id="listening-template-list-container" class="hidden">
+                    <div class="template-header">
+                        <button id="template-list-back-btn" class="template-action-btn">
+                            <ion-icon name="arrow-back-outline"></ion-icon>
+                            <span>Back</span>
+                        </button>
+                        <h2>Templates</h2>
+                        <div class="template-header-spacer"></div>
+                    </div>
+                    <button id="template-new-btn" class="new-template-btn">
+                        <ion-icon name="add-circle-outline"></ion-icon>
+                        <span>New Template</span>
+                    </button>
+                    <div id="template-list" class="template-list">
+                        <!-- Template items will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Template Editor Step -->
+                <div id="listening-template-editor-container" class="hidden">
+                    <div class="template-header">
+                        <button id="template-editor-back-btn" class="template-action-btn">
+                            <ion-icon name="arrow-back-outline"></ion-icon>
+                            <span>Back</span>
+                        </button>
+                        <h2 id="template-editor-title">New Template</h2>
+                        <button id="template-save-btn" class="template-action-btn save-btn">
+                            <ion-icon name="checkmark-outline"></ion-icon>
+                            <span>Save</span>
+                        </button>
+                    </div>
+                    <div class="template-editor-content">
+                        <div class="form-group">
+                            <label for="template-title-input">Title</label>
+                            <input type="text" id="template-title-input" placeholder="Enter template title...">
+                        </div>
+                        <div class="form-group flex-grow">
+                            <label for="template-content-input">Content</label>
+                            <textarea id="template-content-input" placeholder="Paste your text here..."></textarea>
+                        </div>
                     </div>
                 </div>
 
@@ -277,7 +327,7 @@ The preview of me"></textarea>
     </div>
 
     <script src="config.js"></script>
-    <script src="script.js?v=1.16"></script>
+    <script src="script.js?v=1.20"></script>
 </body>
 
 </html>
