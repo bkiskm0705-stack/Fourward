@@ -21,7 +21,7 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <h1>TOEFL Vocab <span class="version">ver.1.23</span></h1>
+            <h1>TOEFL Vocab <span class="version">ver.1.24</span></h1>
             <div class="header-actions">
                 <button id="settings-btn" aria-label="Settings">
                     <ion-icon name="settings-outline"></ion-icon>
@@ -199,7 +199,19 @@ The preview of me"></textarea>
 
             <!-- Writing View -->
             <div id="writing-view" class="view">
-                <!-- Input Screen -->
+                <!-- Mode Toggle -->
+                <div class="writing-mode-toggle">
+                    <button class="mode-btn active" data-mode="essay">
+                        <ion-icon name="document-text-outline"></ion-icon>
+                        <span>Essay</span>
+                    </button>
+                    <button class="mode-btn" data-mode="translation">
+                        <ion-icon name="language-outline"></ion-icon>
+                        <span>Translation</span>
+                    </button>
+                </div>
+
+                <!-- Essay Mode Input Screen -->
                 <div id="writing-input-container">
                     <div class="writing-header">
                         <h2>✍️ TOEFL Writing Grader</h2>
@@ -245,6 +257,46 @@ The preview of me"></textarea>
                             <button id="writing-grade-btn" class="primary-btn">
                                 <ion-icon name="sparkles-outline"></ion-icon>
                                 Grade My Essay
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Translation Mode Input Screen -->
+                <div id="writing-translation-container" class="hidden">
+                    <div class="writing-header">
+                        <h2>🌐 Translation Grader</h2>
+                        <button id="translation-history-btn" class="template-btn">
+                            <ion-icon name="time-outline"></ion-icon>
+                            <span>History</span>
+                        </button>
+                    </div>
+
+                    <div class="writing-form">
+                        <div class="form-group">
+                            <label for="translation-source-input">
+                                📄 English Source Text <span class="required-badge">*Required</span>
+                            </label>
+                            <textarea id="translation-source-input"
+                                placeholder="Enter the English text you want to translate..." rows="6"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="translation-japanese-input">
+                                🇯🇵 Your Japanese Translation <span class="required-badge">*Required</span>
+                            </label>
+                            <textarea id="translation-japanese-input" placeholder="あなたの日本語訳を入力してください..."
+                                rows="6"></textarea>
+                        </div>
+
+                        <div class="writing-actions">
+                            <div class="api-limit-info">
+                                <ion-icon name="information-circle-outline"></ion-icon>
+                                <span id="translation-usage-display">Today: 0/10 uses</span>
+                            </div>
+                            <button id="translation-grade-btn" class="primary-btn">
+                                <ion-icon name="sparkles-outline"></ion-icon>
+                                Grade My Translation
                             </button>
                         </div>
                     </div>
@@ -475,7 +527,7 @@ The preview of me"></textarea>
     </div>
 
     <script src="config.js"></script>
-    <script src="script.js?v=1.23"></script>
+    <script src="script.js?v=1.24"></script>
 </body>
 
 </html>

@@ -2119,15 +2119,17 @@ Return ONLY valid JSON (no markdown code blocks, no explanation before/after):
 
 // Writing Mode State
 let writingHistory = JSON.parse(localStorage.getItem('writingHistory') || '[]');
+let translationHistory = JSON.parse(localStorage.getItem('translationHistory') || '[]');
 let currentGradingResult = null;
 let geminiService = null;
+let currentWritingMode = 'essay'; // 'essay' or 'translation'
 
 // Initialize Gemini Service
 if (CONFIG.GEMINI_API_KEY) {
     geminiService = new GeminiService(CONFIG.GEMINI_API_KEY);
 }
 
-// Writing Mode Elements
+// Writing Mode Elements (Essay Mode)
 const writingInputContainer = document.getElementById('writing-input-container');
 const writingHistoryContainer = document.getElementById('writing-history-container');
 const writingLoadingContainer = document.getElementById('writing-loading-container');
@@ -2147,6 +2149,17 @@ const writingHistoryList = document.getElementById('writing-history-list');
 const writingResultBackBtn = document.getElementById('writing-result-back-btn');
 const writingSaveBtn = document.getElementById('writing-save-btn');
 const writingRetryBtn = document.getElementById('writing-retry-btn');
+
+// Translation Mode Elements
+const writingTranslationContainer = document.getElementById('writing-translation-container');
+const translationSourceInput = document.getElementById('translation-source-input');
+const translationJapaneseInput = document.getElementById('translation-japanese-input');
+const translationUsageDisplay = document.getElementById('translation-usage-display');
+const translationGradeBtn = document.getElementById('translation-grade-btn');
+const translationHistoryBtn = document.getElementById('translation-history-btn');
+
+// Mode Toggle Elements
+const modeBtns = document.querySelectorAll('.writing-mode-toggle .mode-btn');
 
 // Rate Limiting
 function getWritingUsage() {
@@ -2168,8 +2181,12 @@ function incrementWritingUsage() {
 
 function updateUsageDisplay() {
     const usage = getWritingUsage();
+    const text = `Today: ${usage.count}/10 uses`;
     if (writingUsageDisplay) {
-        writingUsageDisplay.textContent = `Today: ${usage.count}/10 uses`;
+        writingUsageDisplay.textContent = text;
+    }
+    if (translationUsageDisplay) {
+        translationUsageDisplay.textContent = text;
     }
 }
 
@@ -2181,18 +2198,28 @@ function canUseWritingAPI() {
 // Screen Navigation
 function showWritingScreen(screenName) {
     writingInputContainer.classList.add('hidden');
+    writingTranslationContainer.classList.add('hidden');
     writingHistoryContainer.classList.add('hidden');
     writingLoadingContainer.classList.add('hidden');
     writingResultContainer.classList.add('hidden');
 
     switch (screenName) {
         case 'input':
-            writingInputContainer.classList.remove('hidden');
+            // Show the appropriate input container based on current mode
+            if (currentWritingMode === 'essay') {
+                writingInputContainer.classList.remove('hidden');
+            } else {
+                writingTranslationContainer.classList.remove('hidden');
+            }
             updateUsageDisplay();
             break;
         case 'history':
             writingHistoryContainer.classList.remove('hidden');
-            renderWritingHistory();
+            if (currentWritingMode === 'essay') {
+                renderWritingHistory();
+            } else {
+                renderTranslationHistory();
+            }
             break;
         case 'loading':
             writingLoadingContainer.classList.remove('hidden');
@@ -2436,16 +2463,7 @@ if (writingResultBackBtn) {
     });
 }
 
-if (writingSaveBtn) {
-    writingSaveBtn.addEventListener('click', () => {
-        if (currentGradingResult && currentGradingResult._essayData) {
-            saveToWritingHistory(currentGradingResult, currentGradingResult._essayData);
-            alert('採点結果を保存しました。');
-            writingSaveBtn.disabled = true;
-            writingSaveBtn.innerHTML = '<ion-icon name="checkmark-outline"></ion-icon> Saved';
-        }
-    });
-}
+// Note: Save button handler has been moved to the end of file to handle both modes
 
 if (writingRetryBtn) {
     writingRetryBtn.addEventListener('click', () => {
@@ -2486,3 +2504,336 @@ switchView = function (viewId) {
         initWritingMode();
     }
 };
+
+// ===== TRANSLATION MODE LOGIC =====
+
+// Mode Toggle Event Listeners
+modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        if (mode === currentWritingMode) return;
+
+        // Update state
+        currentWritingMode = mode;
+
+        // Update button styles
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Show appropriate input screen
+        showWritingScreen('input');
+    });
+});
+
+// Translation Mode Prompt Builder
+function buildTranslationPrompt(sourceText, userTranslation) {
+    return `You are an expert English-to-Japanese translation examiner. Evaluate the user's Japanese translation of the given English text with strict but fair criteria.
+
+[ORIGINAL ENGLISH TEXT]
+${sourceText}
+
+[USER'S JAPANESE TRANSLATION]
+${userTranslation}
+
+[EVALUATION CRITERIA - Score each 0-5]
+1. **Accuracy (正確さ)**: Does the translation accurately convey the original meaning? No additions, omissions, or distortions.
+2. **Naturalness (自然さ)**: Does it read naturally in Japanese? Appropriate sentence flow and expression.
+3. **Completeness (完全性)**: Are all elements of the original text translated? No missing information.
+4. **Word Choice (語彙選択)**: Appropriate vocabulary usage, proper register, and context-aware word selection.
+5. **Grammar (文法)**: Correct Japanese grammar, particle usage, and sentence structure.
+
+Total Score = Sum of all categories × 1.2 (max 30)
+
+[GRADING GUIDELINES]
+- 5: Perfect, professional-level translation
+- 4: Very good with minor improvements possible
+- 3: Acceptable but with noticeable issues
+- 2: Significant problems affecting understanding
+- 1: Major issues throughout
+- 0: Incomprehensible or completely wrong
+
+[OUTPUT FORMAT]
+Return ONLY valid JSON (no markdown code blocks):
+{
+    "totalScore": <number 0-30>,
+    "breakdown": {
+        "accuracy": { "score": <0-5>, "comment": "日本語で具体的なフィードバック" },
+        "naturalness": { "score": <0-5>, "comment": "日本語で具体的なフィードバック" },
+        "completeness": { "score": <0-5>, "comment": "日本語で具体的なフィードバック" },
+        "wordChoice": { "score": <0-5>, "comment": "日本語で具体的なフィードバック" },
+        "grammar": { "score": <0-5>, "comment": "日本語で具体的なフィードバック" }
+    },
+    "overallComment": "日本語での総評（改善点を明確に指摘）",
+    "corrections": [
+        { "original": "ユーザーの訳文の問題部分", "corrected": "修正後の表現", "reason": "日本語で理由を説明" }
+    ],
+    "modelAnswer": "模範的な日本語訳（プロの翻訳レベル）",
+    "keyPhrases": ["重要な訳し方1", "重要な訳し方2", "重要な訳し方3", "重要な訳し方4", "重要な訳し方5"]
+}`;
+}
+
+// Translation Grading Function
+async function submitTranslationForGrading() {
+    const sourceText = translationSourceInput?.value.trim() || '';
+    const userTranslation = translationJapaneseInput?.value.trim() || '';
+
+    // Validation
+    if (!sourceText) {
+        alert('翻訳する英語テキストを入力してください。');
+        return;
+    }
+
+    if (!userTranslation) {
+        alert('あなたの日本語訳を入力してください。');
+        return;
+    }
+
+    if (!canUseWritingAPI()) {
+        alert('本日の利用回数（10回）に達しました。明日またお試しください。');
+        return;
+    }
+
+    if (!geminiService) {
+        alert('Gemini APIキーが設定されていません。config.jsを確認してください。');
+        return;
+    }
+
+    // Show loading
+    showWritingScreen('loading');
+
+    try {
+        const prompt = buildTranslationPrompt(sourceText, userTranslation);
+
+        const requestBody = {
+            contents: [{
+                parts: [{ text: prompt }]
+            }],
+            generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 4096,
+            }
+        };
+
+        const model = geminiService.models[geminiService.currentModelIndex];
+        const url = `${geminiService.getApiUrl(model)}?key=${geminiService.apiKey}`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || 'API request failed');
+        }
+
+        const data = await response.json();
+        const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!textContent) {
+            throw new Error('No response from Gemini');
+        }
+
+        const result = geminiService.parseResponse(textContent);
+        currentGradingResult = result;
+        currentGradingResult._translationData = { sourceText, userTranslation };
+        currentGradingResult._mode = 'translation';
+
+        incrementWritingUsage();
+        displayTranslationResult(result);
+        showWritingScreen('result');
+    } catch (error) {
+        console.error('Translation grading error:', error);
+        alert('採点中にエラーが発生しました: ' + error.message);
+        showWritingScreen('input');
+    }
+}
+
+// Display Translation Result (reuses the same result container with different labels)
+function displayTranslationResult(result) {
+    // Total Score
+    const totalScoreEl = document.getElementById('result-total-score');
+    if (totalScoreEl) {
+        totalScoreEl.textContent = result.totalScore;
+    }
+
+    // Breakdown - use translation-specific categories
+    const breakdownEl = document.getElementById('result-breakdown');
+    if (breakdownEl && result.breakdown) {
+        const categories = [
+            { key: 'accuracy', label: '正確さ (Accuracy)' },
+            { key: 'naturalness', label: '自然さ (Naturalness)' },
+            { key: 'completeness', label: '完全性 (Completeness)' },
+            { key: 'wordChoice', label: '語彙選択 (Word Choice)' },
+            { key: 'grammar', label: '文法 (Grammar)' }
+        ];
+
+        breakdownEl.innerHTML = categories.map(cat => {
+            const data = result.breakdown[cat.key] || { score: 0, comment: '' };
+            const percentage = (data.score / 5) * 100;
+
+            return `
+                <div class="breakdown-item">
+                    <span class="breakdown-label">${cat.label}</span>
+                    <div class="breakdown-bar">
+                        <div class="breakdown-fill" style="width: ${percentage}%"></div>
+                    </div>
+                    <span class="breakdown-score">${data.score}/5</span>
+                </div>
+                <div class="breakdown-comment" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.8rem; padding-left: 0.5rem;">
+                    ${escapeHtml(data.comment || '')}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Overall Comment
+    const commentEl = document.getElementById('result-comment');
+    if (commentEl) {
+        commentEl.textContent = result.overallComment || '';
+    }
+
+    // Corrections
+    const correctionsEl = document.getElementById('result-corrections');
+    if (correctionsEl && result.corrections) {
+        if (result.corrections.length === 0) {
+            correctionsEl.innerHTML = '<p style="color: var(--text-secondary);">修正箇所はありません。素晴らしい翻訳です！</p>';
+        } else {
+            correctionsEl.innerHTML = result.corrections.map(c => `
+                <div class="correction-item">
+                    <div class="correction-original">${escapeHtml(c.original)}</div>
+                    <div class="correction-corrected">→ ${escapeHtml(c.corrected)}</div>
+                    <div class="correction-reason">${escapeHtml(c.reason)}</div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Model Answer
+    const modelAnswerEl = document.getElementById('result-model-answer');
+    if (modelAnswerEl) {
+        modelAnswerEl.textContent = result.modelAnswer || '';
+    }
+
+    // Key Phrases
+    const keyPhrasesEl = document.getElementById('result-key-phrases');
+    if (keyPhrasesEl && result.keyPhrases) {
+        keyPhrasesEl.innerHTML = result.keyPhrases.map(phrase =>
+            `<span class="key-phrase">${escapeHtml(phrase)}</span>`
+        ).join('');
+    }
+}
+
+// Translation History Management
+function saveToTranslationHistory(result, translationData) {
+    const historyItem = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        sourceText: translationData.sourceText,
+        userTranslation: translationData.userTranslation,
+        result: result
+    };
+
+    translationHistory.unshift(historyItem);
+
+    if (translationHistory.length > 10) {
+        translationHistory = translationHistory.slice(0, 10);
+    }
+
+    localStorage.setItem('translationHistory', JSON.stringify(translationHistory));
+}
+
+function renderTranslationHistory() {
+    if (!writingHistoryList) return;
+
+    if (translationHistory.length === 0) {
+        writingHistoryList.innerHTML = `
+            <div class="template-empty">
+                <ion-icon name="language-outline"></ion-icon>
+                <p>No translation history yet.<br>Grade a translation to see results here!</p>
+            </div>
+        `;
+        return;
+    }
+
+    writingHistoryList.innerHTML = translationHistory.map(item => {
+        const date = new Date(item.date);
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+        const preview = item.sourceText.substring(0, 50) + (item.sourceText.length > 50 ? '...' : '');
+
+        return `
+            <div class="history-item" data-id="${item.id}">
+                <div class="history-item-header">
+                    <span class="history-item-score">${item.result.totalScore}/30</span>
+                    <span class="history-item-date">${dateStr}</span>
+                </div>
+                <div class="history-item-preview">${escapeHtml(preview)}</div>
+                <div class="history-item-actions">
+                    <button class="history-delete-btn" data-id="${item.id}">
+                        <ion-icon name="trash-outline"></ion-icon>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Add event listeners
+    writingHistoryList.querySelectorAll('.history-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.history-delete-btn')) return;
+
+            const id = parseInt(item.dataset.id);
+            const historyItem = translationHistory.find(h => h.id === id);
+            if (historyItem) {
+                currentGradingResult = historyItem.result;
+                currentGradingResult._mode = 'translation';
+                displayTranslationResult(historyItem.result);
+                showWritingScreen('result');
+            }
+        });
+    });
+
+    writingHistoryList.querySelectorAll('.history-delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = parseInt(btn.dataset.id);
+            if (confirm('この履歴を削除しますか？')) {
+                translationHistory = translationHistory.filter(item => item.id !== id);
+                localStorage.setItem('translationHistory', JSON.stringify(translationHistory));
+                renderTranslationHistory();
+            }
+        });
+    });
+}
+
+// Translation Mode Event Listeners
+if (translationGradeBtn) {
+    translationGradeBtn.addEventListener('click', submitTranslationForGrading);
+}
+
+if (translationHistoryBtn) {
+    translationHistoryBtn.addEventListener('click', () => {
+        showWritingScreen('history');
+    });
+}
+
+// Update save button to handle both modes
+const originalSaveHandler = writingSaveBtn?.onclick;
+if (writingSaveBtn) {
+    writingSaveBtn.onclick = null;
+    writingSaveBtn.addEventListener('click', () => {
+        if (currentGradingResult) {
+            if (currentGradingResult._mode === 'translation' && currentGradingResult._translationData) {
+                saveToTranslationHistory(currentGradingResult, currentGradingResult._translationData);
+            } else if (currentGradingResult._essayData) {
+                saveToWritingHistory(currentGradingResult, currentGradingResult._essayData);
+            }
+            alert('採点結果を保存しました。');
+            writingSaveBtn.disabled = true;
+            writingSaveBtn.innerHTML = '<ion-icon name="checkmark-outline"></ion-icon> Saved';
+        }
+    });
+}

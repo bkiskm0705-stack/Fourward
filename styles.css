@@ -217,6 +217,11 @@ body {
     }
 }
 
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
 /* Loading */
 #loading-view {
     text-align: center;
@@ -2227,6 +2232,81 @@ body {
 }
 
 /* ===== WRITING MODE STYLES ===== */
+
+/* Writing View Container Screens - Each screen takes full height */
+#writing-view {
+    overflow: hidden;
+}
+
+#writing-input-container,
+#writing-translation-container,
+#writing-history-container,
+#writing-loading-container,
+#writing-result-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Writing Mode Toggle */
+.writing-mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--surface-dark);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+}
+
+.writing-mode-toggle .mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.writing-mode-toggle .mode-btn ion-icon {
+    font-size: 1.1rem;
+}
+
+.writing-mode-toggle .mode-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.writing-mode-toggle .mode-btn.active {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+}
+
+/* Theme Variants for Mode Toggle */
+[data-theme="nature"] .writing-mode-toggle {
+    background: #f0f2f5;
+}
+
+[data-theme="nature"] .writing-mode-toggle .mode-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="midnight"] .writing-mode-toggle {
+    border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+[data-theme="midnight"] .writing-mode-toggle .mode-btn.active {
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
 
 /* Writing Header */
 .writing-header {
