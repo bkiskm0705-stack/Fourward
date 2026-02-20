@@ -8,7 +8,7 @@
     "theme_color": "#6c5ce7",
     "icons": [
         {
-            "src": "icon_Fourward.png",
+            "src": "icon_Fourward.png?v=2",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
