@@ -18,13 +18,18 @@ function doGet(e) {
         if (!sheet && sheetName === 'TOEIC_Golden') {
             sheet = ss.getSheetByName('TOEIC Golden') || ss.getSheetByName('TOEICGolden');
         }
+        if (!sheet && sheetName === 'Target1900') {
+            sheet = ss.getSheetByName('Target 1900') || ss.getSheetByName('Target_1900');
+        }
 
         // If still not found, default to first sheet
         if (!sheet) sheet = ss.getSheets()[0];
     }
 
-    // Get all data
-    const rows = sheet.getDataRange().getValues();
+    // Get all data (use explicit range to ensure last row is included)
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    const rows = sheet.getRange(1, 1, lastRow, lastCol).getValues();
 
     // Columns:
     // A (0): Index

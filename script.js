@@ -461,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Preload all vocabulary sheets in parallel at startup
 async function preloadAllSheets() {
-    const sheets = ['TOEFL_Vocabulary', 'My_Vocabulary', 'TOEIC_Golden'];
+    const sheets = ['TOEFL_Vocabulary', 'My_Vocabulary', 'TOEIC_Golden', 'Target1900'];
 
     let gasUrl = null;
     if (typeof CONFIG !== 'undefined' && CONFIG.GAS_URL) {
@@ -1421,7 +1421,7 @@ function renderWordList() {
         if (results.length === 0) {
             wordListEl.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:2rem;">No matches found</p>';
         } else {
-            renderWords(results);
+            renderWords(results, -1);
         }
         return;
     }
@@ -1486,7 +1486,7 @@ function renderWordList() {
         headerDiv.appendChild(fcReviewStartBtn);
         wordListEl.appendChild(headerDiv);
 
-        renderWords(pageWords);
+        renderWords(pageWords, start);
     }
 }
 
@@ -1517,6 +1517,8 @@ function renderGroups(words) {
             prefix = 'My';
         } else if (currentSheet === 'TOEIC_Golden') {
             prefix = 'TOEIC';
+        } else if (currentSheet === 'Target1900') {
+            prefix = 'Target';
         }
 
         btn.innerHTML = `
@@ -1704,17 +1706,36 @@ function handleSwipe() {
 }
 
 
-function renderWords(words) {
+function renderWords(words, globalOffset = 0) {
+    // Determine sheet prefix for global index label
+    let sheetPrefix = 'Vocab';
+    if (currentSheet === 'TOEFL_Vocabulary') sheetPrefix = 'TOEFL';
+    else if (currentSheet === 'My_Vocabulary') sheetPrefix = 'My';
+    else if (currentSheet === 'TOEIC_Golden') sheetPrefix = 'TOEIC';
+    else if (currentSheet === 'Target1900') sheetPrefix = 'Target';
+
     words.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'word-item';
         const isInReview = isWordInReviewList(item.word);
+
+        // Calculate global index number
+        let globalNum = '';
+        if (globalOffset >= 0) {
+            globalNum = `${sheetPrefix} #${globalOffset + index + 1}`;
+        } else {
+            // Search mode: find index in allWords
+            const foundIdx = allWords.indexOf(item);
+            globalNum = foundIdx >= 0 ? `${sheetPrefix} #${foundIdx + 1}` : '';
+        }
+
         div.innerHTML = `
             <div class="word-header">
                 <div class="word-title">
                     <span class="word-index">${index + 1}.</span>
                     <span class="word">${item.word}</span>
                     <span class="pos">${item.pos}</span>
+                    <span class="word-global-index">${globalNum}</span>
                     <button class="audio-btn" aria-label="Listen">
                         <ion-icon name="volume-medium-outline"></ion-icon>
                     </button>
