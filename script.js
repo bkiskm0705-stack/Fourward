@@ -3,7 +3,7 @@ const views = {
     loading: document.getElementById('loading-view'),
     list: document.getElementById('list-view'),
     flashCard: document.getElementById('flash-card-view'),
-    quiz: document.getElementById('quiz-view'),
+    reading: document.getElementById('reading-view'),
     listening: document.getElementById('listening-view'),
     writing: document.getElementById('writing-view'),
     settings: document.getElementById('settings-view')
@@ -18,16 +18,8 @@ const themeBtns = document.querySelectorAll('.theme-btn');
 const wordListEl = document.getElementById('word-list');
 const wordSearchInput = document.getElementById('word-search');
 
-// Quiz Elements
-const quizQuestionWord = document.getElementById('question-word');
-const quizQuestionPos = document.getElementById('question-pos');
-const quizOptionsEl = document.getElementById('quiz-options');
-const quizProgressCurrent = document.getElementById('q-current');
-const quizProgressTotal = document.getElementById('q-total');
-const currentScoreEl = document.getElementById('current-score');
-const quizFeedback = document.getElementById('quiz-feedback');
-const feedbackText = document.getElementById('feedback-text');
-const nextQBtn = document.getElementById('next-q-btn');
+// Reading Elements - referenced inside setupEventListeners
+
 // Flash Card Elements
 const fcCloseBtn = document.getElementById('fc-close-btn');
 const fcProgress = document.getElementById('fc-progress');
@@ -47,12 +39,6 @@ let vocabCache = {}; // Cache for sheet data: { 'SheetName': [data] }
 let currentTheme = localStorage.getItem('theme') || 'blue-dark';
 // Migrate old theme names
 if (currentTheme === 'nebula' || currentTheme === 'nature') currentTheme = 'blue-dark';
-let currentQuiz = {
-    score: 0,
-    currentQuestionIndex: 0,
-    questions: [],
-    isAnswered: false
-};
 let currentGroupIndex = null;
 
 // Flash Card State
@@ -562,9 +548,7 @@ function setupEventListeners() {
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
 
-            if (target === 'quiz-view') {
-                startNewQuiz();
-            }
+            // Reading mode is initialized when view is opened (handled in switchView)
         });
     });
 
@@ -1211,8 +1195,7 @@ function setupEventListeners() {
     // Search & Filter
     wordSearchInput.addEventListener('input', renderWordList);
 
-    // Quiz (Disabled)
-    // nextQBtn.addEventListener('click', nextQuestion);
+    // Quiz (Removed - replaced by Reading mode)
 
     // Flash Cards
     fcCloseBtn.addEventListener('click', () => {
@@ -1398,6 +1381,9 @@ function switchView(viewId) {
 
     if (viewId === 'listening-view') {
         initListeningMode();
+    }
+    if (viewId === 'reading-view') {
+        initReadingMode();
     }
 }
 
@@ -1888,87 +1874,167 @@ function speakWord(text) {
     audioService.playAudio(text, currentVoiceURI);
 }
 
-// Quiz Logic
-function startNewQuiz() {
-    currentQuiz.score = 0;
-    currentQuiz.currentQuestionIndex = 0;
-    currentScoreEl.textContent = 0;
+// =============================================
+// Reading Mode Logic
+// =============================================
+let readingTimerInterval = null;
+let readingStartTimestamp = null;
+let readingWordCount = 0;
+let readingText = '';
 
-    // Select 10 random words
-    const shuffled = [...allWords].sort(() => 0.5 - Math.random());
-    currentQuiz.questions = shuffled.slice(0, 10);
-    quizProgressTotal.textContent = currentQuiz.questions.length;
+function initReadingMode() {
+    const inputContainer = document.getElementById('reading-input-container');
+    const playerContainer = document.getElementById('reading-player-container');
+    const resultContainer = document.getElementById('reading-result-container');
 
-    showQuestion();
+    // Show input, hide others
+    inputContainer.classList.remove('hidden');
+    playerContainer.classList.add('hidden');
+    resultContainer.classList.add('hidden');
 }
 
-function showQuestion() {
-    if (currentQuiz.questions.length === 0) return;
+function showReadingContainer(containerName) {
+    const inputContainer = document.getElementById('reading-input-container');
+    const playerContainer = document.getElementById('reading-player-container');
+    const resultContainer = document.getElementById('reading-result-container');
 
-    currentQuiz.isAnswered = false;
-    quizFeedback.classList.remove('show', 'correct', 'wrong');
+    inputContainer.classList.add('hidden');
+    playerContainer.classList.add('hidden');
+    resultContainer.classList.add('hidden');
 
-    const currentQ = currentQuiz.questions[currentQuiz.currentQuestionIndex];
-    quizProgressCurrent.textContent = currentQuiz.currentQuestionIndex + 1;
-
-    quizQuestionWord.textContent = currentQ.word;
-    quizQuestionPos.textContent = currentQ.pos;
-
-    // Generate options: 1 correct, 3 wrong
-    const correctOption = currentQ;
-    const wrongOptions = allWords
-        .filter(w => w.word !== currentQ.word)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3);
-
-    const options = [correctOption, ...wrongOptions].sort(() => 0.5 - Math.random());
-
-    quizOptionsEl.innerHTML = '';
-    options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.textContent = opt.meaning;
-        btn.onclick = () => handleAnswer(opt, correctOption, btn);
-        quizOptionsEl.appendChild(btn);
-    });
-}
-
-function handleAnswer(selected, correct, btnElement) {
-    if (currentQuiz.isAnswered) return;
-    currentQuiz.isAnswered = true;
-
-    const isCorrect = selected.word === correct.word;
-
-    // UI Update
-    const allBtns = quizOptionsEl.querySelectorAll('.option-btn');
-    allBtns.forEach(btn => {
-        if (btn.textContent === correct.meaning) {
-            btn.classList.add('correct');
-        } else if (btn === btnElement && !isCorrect) {
-            btn.classList.add('wrong');
-        }
-    });
-
-    if (isCorrect) {
-        currentQuiz.score++;
-        currentScoreEl.textContent = currentQuiz.score;
-        quizFeedback.className = 'quiz-feedback show correct';
-        feedbackText.textContent = 'Excellent!';
-    } else {
-        quizFeedback.className = 'quiz-feedback show wrong';
-        feedbackText.textContent = `Correct: ${correct.meaning}`;
+    switch (containerName) {
+        case 'input':
+            inputContainer.classList.remove('hidden');
+            break;
+        case 'player':
+            playerContainer.classList.remove('hidden');
+            break;
+        case 'result':
+            resultContainer.classList.remove('hidden');
+            break;
     }
 }
 
-function nextQuestion() {
-    currentQuiz.currentQuestionIndex++;
-    if (currentQuiz.currentQuestionIndex < currentQuiz.questions.length) {
-        showQuestion();
-    } else {
-        alert(`Quiz Finished! Score: ${currentQuiz.score}/${currentQuiz.questions.length}`);
-        startNewQuiz(); // Restart or go back to menu could be better
-    }
+function startReading(text) {
+    readingText = text;
+    readingWordCount = text.split(/\s+/).filter(w => w.length > 0).length;
+
+    // Render text in display area
+    const display = document.getElementById('reading-text-display');
+    display.textContent = text;
+
+    // Show player
+    showReadingContainer('player');
+
+    // Start timer
+    readingStartTimestamp = Date.now();
+    const timerEl = document.getElementById('reading-timer');
+    timerEl.textContent = '00:00';
+
+    if (readingTimerInterval) clearInterval(readingTimerInterval);
+    readingTimerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - readingStartTimestamp) / 1000);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }, 1000);
 }
+
+function stopReading() {
+    if (readingTimerInterval) {
+        clearInterval(readingTimerInterval);
+        readingTimerInterval = null;
+    }
+
+    const elapsedMs = Date.now() - readingStartTimestamp;
+    const elapsedMinutes = elapsedMs / 60000;
+    const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
+    // Calculate WPM
+    const wpm = elapsedMinutes > 0 ? Math.round(readingWordCount / elapsedMinutes) : 0;
+
+    // Format time
+    const mins = Math.floor(elapsedSeconds / 60);
+    const secs = elapsedSeconds % 60;
+    const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
+
+    // Determine level
+    let levelEmoji, levelText, levelClass;
+    if (wpm < 150) {
+        levelEmoji = '🐢';
+        levelText = 'Slow';
+        levelClass = 'level-slow';
+    } else if (wpm < 250) {
+        levelEmoji = '📖';
+        levelText = 'Average';
+        levelClass = 'level-average';
+    } else if (wpm < 350) {
+        levelEmoji = '⚡';
+        levelText = 'Fast';
+        levelClass = 'level-fast';
+    } else {
+        levelEmoji = '🚀';
+        levelText = 'Very Fast';
+        levelClass = 'level-veryfast';
+    }
+
+    // Update result UI
+    document.getElementById('reading-wpm').textContent = wpm;
+    document.getElementById('reading-word-count').textContent = readingWordCount;
+    document.getElementById('reading-time').textContent = timeStr;
+
+    const levelBadge = document.getElementById('reading-level');
+    levelBadge.className = `wpm-level-badge ${levelClass}`;
+    levelBadge.innerHTML = `<span class="level-emoji">${levelEmoji}</span> <span>${levelText}</span>`;
+
+    // Show result
+    showReadingContainer('result');
+}
+
+// Reading Mode Event Listeners (set up once)
+document.addEventListener('DOMContentLoaded', () => {
+    const startBtn = document.getElementById('reading-start-btn');
+    const backBtn = document.getElementById('reading-back-btn');
+    const stopBtn = document.getElementById('reading-stop-btn');
+    const retryBtn = document.getElementById('reading-retry-btn');
+    const textInput = document.getElementById('reading-text-input');
+
+    if (startBtn) {
+        startBtn.addEventListener('click', () => {
+            let text = textInput.value.trim();
+            if (!text) {
+                text = textInput.placeholder;
+            }
+            if (!text) {
+                alert('Please paste some English text.');
+                return;
+            }
+            startReading(text);
+        });
+    }
+
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            if (readingTimerInterval) {
+                clearInterval(readingTimerInterval);
+                readingTimerInterval = null;
+            }
+            showReadingContainer('input');
+        });
+    }
+
+    if (stopBtn) {
+        stopBtn.addEventListener('click', () => {
+            stopReading();
+        });
+    }
+
+    if (retryBtn) {
+        retryBtn.addEventListener('click', () => {
+            showReadingContainer('input');
+        });
+    }
+});
 
 // Settings Logic
 // Theme Logic

@@ -28,7 +28,7 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <h1>Fourward <span class="version">ver.1.3</span></h1>
+            <h1>Fourward <span class="version">ver.1.31</span></h1>
             <div class="header-actions">
                 <button id="settings-btn" aria-label="Settings">
                     <ion-icon name="settings-outline"></ion-icon>
@@ -63,13 +63,78 @@
                 </div>
             </div>
 
-            <!-- Quiz View -->
-            <!-- Quiz View (Disabled) -->
-            <div id="quiz-view" class="view">
-                <div class="placeholder-container">
-                    <ion-icon name="construct-outline"></ion-icon>
-                    <h2>準備中...</h2>
-                    <p>クイズ機能は現在開発中です。</p>
+            <!-- Reading View -->
+            <div id="reading-view" class="view">
+                <!-- Input Step -->
+                <div id="reading-input-container">
+                    <div class="reading-input-header">
+                        <h2>📖 Reading Practice</h2>
+                        <p class="subtitle">Paste your English text below and measure your reading speed</p>
+                    </div>
+                    <textarea id="reading-text-input" placeholder="Paste your English passage here...
+
+Example: The relationship between technology and society has been a subject of intense debate among scholars for decades. While some argue that technological advancements have overwhelmingly benefited humanity, others contend that the rapid pace of innovation has led to unforeseen consequences that threaten the very fabric of social cohesion."></textarea>
+                    <div class="reading-input-actions">
+                        <button id="reading-start-btn" class="primary-btn">
+                            <ion-icon name="play-outline"></ion-icon>
+                            Start Reading
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reading Mode Step -->
+                <div id="reading-player-container" class="hidden">
+                    <div class="reading-player-header">
+                        <button id="reading-back-btn" class="icon-btn">
+                            <ion-icon name="arrow-back-outline"></ion-icon>
+                        </button>
+                        <span>Reading...</span>
+                        <div id="reading-timer" class="reading-timer">00:00</div>
+                    </div>
+                    <div id="reading-text-display" class="reading-text-area">
+                        <!-- Text rendered here -->
+                    </div>
+                    <div class="reading-stop-area">
+                        <button id="reading-stop-btn" class="reading-stop-btn">
+                            <ion-icon name="stop-circle-outline"></ion-icon>
+                            <span>Finish Reading</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Result Step -->
+                <div id="reading-result-container" class="hidden">
+                    <div class="reading-result-header">
+                        <h2>📊 Your Reading Speed</h2>
+                    </div>
+                    <div class="reading-result-content">
+                        <div class="wpm-score-card">
+                            <div class="wpm-value" id="reading-wpm">0</div>
+                            <div class="wpm-unit">WPM</div>
+                            <div class="wpm-label">Words Per Minute</div>
+                        </div>
+                        <div class="wpm-level-badge" id="reading-level">
+                            <!-- Level badge injected by JS -->
+                        </div>
+                        <div class="reading-stats">
+                            <div class="stat-item">
+                                <ion-icon name="text-outline"></ion-icon>
+                                <span class="stat-value" id="reading-word-count">0</span>
+                                <span class="stat-label">Words</span>
+                            </div>
+                            <div class="stat-item">
+                                <ion-icon name="time-outline"></ion-icon>
+                                <span class="stat-value" id="reading-time">0:00</span>
+                                <span class="stat-label">Time</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="reading-result-actions">
+                        <button id="reading-retry-btn" class="primary-btn">
+                            <ion-icon name="refresh-outline"></ion-icon>
+                            Try Again
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -531,12 +596,17 @@ The preview of me"></textarea>
         <!-- Bottom Navigation for Mobile -->
         <nav class="bottom-nav">
             <button class="nav-item active" data-target="list-view">
-                <ion-icon name="book-outline"></ion-icon>
+                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="12" width="16" height="9" rx="1.5" transform="rotate(-5 6 16.5)" opacity="0.35"/>
+                    <rect x="6" y="12" width="16" height="9" rx="1.5" transform="rotate(-25 6 16.5)" opacity="0.55"/>
+                    <rect x="6" y="12" width="16" height="9" rx="1.5" transform="rotate(-45 6 16.5)" opacity="0.75"/>
+                    <circle cx="6" cy="17" r="2"/>
+                </svg>
                 <span>Vocab</span>
             </button>
-            <button class="nav-item" data-target="quiz-view">
-                <ion-icon name="school-outline"></ion-icon>
-                <span>Quiz</span>
+            <button class="nav-item" data-target="reading-view">
+                <ion-icon name="book-outline"></ion-icon>
+                <span>Reading</span>
             </button>
             <button class="nav-item" data-target="listening-view">
                 <ion-icon name="headset-outline"></ion-icon>
